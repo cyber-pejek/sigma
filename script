@@ -1,9 +1,9 @@
 -- ====== Stare ustawienia ======
-getgenv().hop = "old"
+getgenv().hop = "new"
 getgenv().reducelag = true
 getgenv().blackscreen = false
 getgenv().AutoFarm = false
-getgenv().WebhookURL = "" --If not used do not write anything
+getgenv().WebhookURL = "" --https://discord.com/api/webhooks/1415319387295973376/8kb7jQhB2cxXB_OOTiq4d9JKXDvGCMGatGK6Ms_qbIp6FlyLYkz5M5AA6BN9o35iEmdl
 
 -- ====== Dodajemy efekt GUI "Banana Client 2.5" ======
 local CoreGui = game:GetService("CoreGui")

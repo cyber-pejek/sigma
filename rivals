@@ -1,0 +1,161 @@
+--[[ 
+Rival Tools v1.0
+Funkcje: Fly, Speed, Infinite Jump, Noclip, AutoAttack/Aimbot z Reach 100
+Wszystko działa w Twojej własnej grze Roblox
+]]--
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+
+local LocalPlayer = Players.LocalPlayer
+local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+local Humanoid = Character:WaitForChild("Humanoid")
+local RootPart = Character:WaitForChild("HumanoidRootPart")
+
+-- SETTINGS
+local REACH_DISTANCE = 100
+local HITBOX_SIZE = Vector3.new(10,10,10)
+local FLY_SPEED = 50
+local SPEED = 50
+local DAMAGE = 5
+
+-- GUI
+local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
+ScreenGui.Name = "RivalToolsGUI"
+
+local function createToggle(name, position)
+    local frame = Instance.new("Frame", ScreenGui)
+    frame.Size = UDim2.new(0,160,0,30)
+    frame.Position = UDim2.new(0,10,0,position)
+    frame.BackgroundColor3 = Color3.fromRGB(30,30,30)
+
+    local label = Instance.new("TextLabel", frame)
+    label.Text = name
+    label.Size = UDim2.new(0.6,0,1,0)
+    label.BackgroundTransparency = 1
+    label.TextColor3 = Color3.fromRGB(255,255,255)
+    label.TextScaled = true
+
+    local button = Instance.new("TextButton", frame)
+    button.Text = "OFF"
+    button.Size = UDim2.new(0.4,0,1,0)
+    button.Position = UDim2.new(0.6,0,0,0)
+    button.BackgroundColor3 = Color3.fromRGB(60,60,60)
+    button.TextColor3 = Color3.fromRGB(255,255,255)
+    button.TextScaled = true
+
+    local state = false
+    button.MouseButton1Click:Connect(function()
+        state = not state
+        button.Text = state and "ON" or "OFF"
+    end)
+
+    return function() return state end
+end
+
+local FlyEnabled = createToggle("Fly", 10)
+local SpeedEnabled = createToggle("Speed", 50)
+local InfiniteJumpEnabled = createToggle("InfJump", 90)
+local NoclipEnabled = createToggle("Noclip", 130)
+local AutoAttackEnabled = createToggle("AutoAttack", 170)
+
+-- Fly
+local flying = false
+local bodyVelocity = Instance.new("BodyVelocity")
+RunService.RenderStepped:Connect(function()
+    if FlyEnabled() then
+        if not flying then
+            bodyVelocity.Parent = RootPart
+            bodyVelocity.MaxForce = Vector3.new(1e5,1e5,1e5)
+            flying = true
+        end
+        local moveDirection = Vector3.new()
+        if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDirection = moveDirection + workspace.CurrentCamera.CFrame.LookVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDirection = moveDirection - workspace.CurrentCamera.CFrame.LookVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDirection = moveDirection - workspace.CurrentCamera.CFrame.RightVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDirection = moveDirection + workspace.CurrentCamera.CFrame.RightVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.Space) then moveDirection = moveDirection + Vector3.new(0,1,0) end
+        if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then moveDirection = moveDirection - Vector3.new(0,1,0) end
+        if moveDirection.Magnitude > 0 then
+            bodyVelocity.Velocity = moveDirection.Unit * FLY_SPEED
+        else
+            bodyVelocity.Velocity = Vector3.new(0,0,0)
+        end
+    else
+        if flying then
+            bodyVelocity.Parent = nil
+            flying = false
+        end
+    end
+end)
+
+-- Speed
+local normalWalkSpeed = Humanoid.WalkSpeed
+RunService.RenderStepped:Connect(function()
+    Humanoid.WalkSpeed = SpeedEnabled() and SPEED or normalWalkSpeed
+end)
+
+-- Infinite Jump
+UserInputService.JumpRequest:Connect(function()
+    if InfiniteJumpEnabled() then
+        Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+    end
+end)
+
+-- Noclip
+RunService.Stepped:Connect(function()
+    if NoclipEnabled() then
+        for _, part in pairs(Character:GetChildren()) do
+            if part:IsA("BasePart") then
+                part.CanCollide = false
+            end
+        end
+    else
+        for _, part in pairs(Character:GetChildren()) do
+            if part:IsA("BasePart") then
+                part.CanCollide = true
+            end
+        end
+    end
+end)
+
+-- Hitbox + AutoAttack (Aimbot)
+local function enlargeHitboxes()
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character then
+            for _, part in pairs(player.Character:GetChildren()) do
+                if part:IsA("BasePart") then
+                    part.Size = HITBOX_SIZE
+                end
+            end
+        end
+    end
+end
+
+local function getNearestPlayerInReach()
+    local nearestDist = math.huge
+    local nearestPlayer = nil
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+            local dist = (player.Character.HumanoidRootPart.Position - RootPart.Position).Magnitude
+            if dist <= REACH_DISTANCE and dist < nearestDist then
+                nearestDist = dist
+                nearestPlayer = player
+            end
+        end
+    end
+    return nearestPlayer
+end
+
+RunService.RenderStepped:Connect(function()
+    enlargeHitboxes()
+    if AutoAttackEnabled() then
+        local target = getNearestPlayerInReach()
+        if target and target.Character:FindFirstChild("Humanoid") then
+            target.Character.Humanoid:TakeDamage(DAMAGE)
+        end
+    end
+end)
+
+print("Rival Tools GUI v1.0 loaded!")

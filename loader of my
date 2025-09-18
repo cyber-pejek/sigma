@@ -1,0 +1,257 @@
+-- LocalScript w StarterPlayerScripts
+local Players = game:GetService("Players")
+local DataStoreService = game:GetService("DataStoreService")
+local TweenService = game:GetService("TweenService")
+local LocalPlayer = Players.LocalPlayer
+
+-- DataStore do zapisywania skryptów
+local ScriptStore = DataStoreService:GetDataStore("SavedScripts")
+
+-- Tabela w pamięci na sesję
+local savedScripts = {}
+
+-- Funkcja do zapisywania i wykonywania skryptu
+local function executeAndSaveScript(scriptContent, scriptName)
+-- Zapisz w pamięci (tabela)
+savedScripts[scriptName] = scriptContent
+print("Skrypt '" .. scriptName .. "' zapisany w pamięci!")
+
+-- Zapisz do DataStore
+local success, errorMsg = pcall(function()
+    ScriptStore:SetAsync("Script_" .. scriptName, scriptContent)
+    print("Skrypt '" .. scriptName .. "' zapisany w DataStore!")
+end)
+if not success then
+    warn("Błąd zapisu do DataStore: " .. tostring(errorMsg))
+end
+
+-- Wykonaj skrypt za pomocą loadstring
+local execSuccess, result = pcall(function()
+    return loadstring(scriptContent)()
+end)
+if execSuccess then
+    print("Skrypt '" .. scriptName .. "' wykonany pomyślnie!")
+else
+    warn("Błąd wykonywania skryptu: " .. tostring(result))
+end
+end
+
+-- Funkcja do wczytywania skryptu z DataStore
+local function loadScriptFromDataStore(scriptName, textBox)
+local success, scriptContent = pcall(function()
+return ScriptStore:GetAsync("Script_" .. scriptName)
+end)
+if success and scriptContent then
+textBox.Text = scriptContent
+print("Wczytano skrypt '" .. scriptName .. "' z DataStore!")
+executeAndSaveScript(scriptContent, scriptName)
+else
+warn("Błąd wczytywania skryptu '" .. scriptName .. "': " .. tostring(scriptContent))
+end
+end
+
+-- Funkcja do tworzenia przycisku w liście skryptów
+local function createScriptButton(scriptName, scrollingFrame, textBox)
+local Button = Instance.new("TextButton")
+Button.Size = UDim2.new(0, 260, 0, 30)
+Button.Position = UDim2.new(0, 5, 0, 5 + (#scrollingFrame:GetChildren() - 1) * 35)
+Button.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+Button.TextColor3 = Color3.fromRGB(255, 255, 255)
+Button.Text = scriptName
+Button.Font = Enum.Font.SourceSans
+Button.TextSize = 16
+Button.BorderSizePixel = 0
+Button.Parent = scrollingFrame
+
+-- Zaokrąglone rogi
+local UICorner = Instance.new("UICorner")
+UICorner.CornerRadius = UDim.new(0, 8)
+UICorner.Parent = Button
+
+-- Animacja przy najechaniu
+Button.MouseEnter:Connect(function()
+    TweenService:Create(Button, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(80, 80, 80)}):Play()
+end)
+Button.MouseLeave:Connect(function()
+    TweenService:Create(Button, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(60, 60, 60)}):Play()
+end)
+
+-- Wczytaj skrypt po kliknięciu
+Button.MouseButton1Click:Connect(function()
+    loadScriptFromDataStore(scriptName, textBox)
+end)
+end
+
+-- Funkcja do tworzenia UI
+local function createUI()
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+ScreenGui.Name = "ScriptLoaderGui"
+
+-- Ramka główna
+local Frame = Instance.new("Frame")
+Frame.Size = UDim2.new(0, 350, 0, 400)
+Frame.Position = UDim2.new(0.5, -175, 0.5, -200)
+Frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+Frame.BorderSizePixel = 0
+Frame.Parent = ScreenGui
+
+-- Gradient tła
+local UIGradient = Instance.new("UIGradient")
+UIGradient.Color = ColorSequence.new{
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(30, 30, 30)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(50, 50, 50))
+}
+UIGradient.Rotation = 45
+UIGradient.Parent = Frame
+
+-- Zaokrąglone rogi
+local UICorner = Instance.new("UICorner")
+UICorner.CornerRadius = UDim.new(0, 12)
+UICorner.Parent = Frame
+
+-- Cień
+local UIStroke = Instance.new("UIStroke")
+UIStroke.Color = Color3.fromRGB(0, 0, 0)
+UIStroke.Thickness = 2
+UIStroke.Transparency = 0.5
+UIStroke.Parent = Frame
+
+-- TextBox do wklejania kodu
+local TextBox = Instance.new("TextBox")
+TextBox.Size = UDim2.new(0, 320, 0, 150)
+TextBox.Position = UDim2.new(0, 15, 0, 15)
+TextBox.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+TextBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+TextBox.Text = "-- Wklej kod Lua tutaj"
+TextBox.ClearTextOnFocus = false
+TextBox.MultiLine = true
+TextBox.Font = Enum.Font.SourceSans
+TextBox.TextSize = 14
+TextBox.Parent = Frame
+
+local TextBoxCorner = Instance.new("UICorner")
+TextBoxCorner.CornerRadius = UDim.new(0, 8)
+TextBoxCorner.Parent = TextBox
+
+-- Pole tekstowe do nazwy skryptu
+local NameBox = Instance.new("TextBox")
+NameBox.Size = UDim2.new(0, 320, 0, 30)
+NameBox.Position = UDim2.new(0, 15, 0, 175)
+NameBox.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+NameBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+NameBox.Text = "Nazwa skryptu (np. Skrypt_1)"
+NameBox.Font = Enum.Font.SourceSans
+NameBox.TextSize = 16
+NameBox.Parent = Frame
+
+local NameBoxCorner = Instance.new("UICorner")
+NameBoxCorner.CornerRadius = UDim.new(0, 8)
+NameBoxCorner.Parent = NameBox
+
+-- Przycisk "Załaduj"
+local LoadButton = Instance.new("TextButton")
+LoadButton.Size = UDim2.new(0, 150, 0, 40)
+LoadButton.Position = UDim2.new(0, 15, 0, 215)
+LoadButton.BackgroundColor3 = Color3.fromRGB(0, 170, 0)
+LoadButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+LoadButton.Text = "Załaduj"
+LoadButton.Font = Enum.Font.SourceSansBold
+LoadButton.TextSize = 18
+LoadButton.Parent = Frame
+
+local LoadButtonCorner = Instance.new("UICorner")
+LoadButtonCorner.CornerRadius = UDim.new(0, 8)
+LoadButtonCorner.Parent = LoadButton
+
+-- Animacja dla przycisku "Załaduj"
+LoadButton.MouseEnter:Connect(function()
+    TweenService:Create(LoadButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(0, 200, 0)}):Play()
+end)
+LoadButton.MouseLeave:Connect(function()
+    TweenService:Create(LoadButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(0, 170, 0)}):Play()
+end)
+
+-- Przycisk "Wczytaj"
+local ReloadButton = Instance.new("TextButton")
+ReloadButton.Size = UDim2.new(0, 150, 0, 40)
+ReloadButton.Position = UDim2.new(0, 185, 0, 215)
+ReloadButton.BackgroundColor3 = Color3.fromRGB(0, 0, 170)
+ReloadButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+ReloadButton.Text = "Wczytaj"
+ReloadButton.Font = Enum.Font.SourceSansBold
+ReloadButton.TextSize = 18
+ReloadButton.Parent = Frame
+
+local ReloadButtonCorner = Instance.new("UICorner")
+ReloadButtonCorner.CornerRadius = UDim.new(0, 8)
+ReloadButtonCorner.Parent = ReloadButton
+
+-- Animacja dla przycisku "Wczytaj"
+ReloadButton.MouseEnter:Connect(function()
+    TweenService:Create(ReloadButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(0, 0, 200)}):Play()
+end)
+ReloadButton.MouseLeave:Connect(function()
+    TweenService:Create(ReloadButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(0, 0, 170)}):Play()
+end)
+
+-- ScrollingFrame dla listy zapisanych skryptów
+local ScriptList = Instance.new("ScrollingFrame")
+ScriptList.Size = UDim2.new(0, 320, 0, 100)
+ScriptList.Position = UDim2.new(0, 15, 0, 265)
+ScriptList.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+ScriptList.BorderSizePixel = 0
+ScriptList.CanvasSize = UDim2.new(0, 0, 0, 0)
+ScriptList.ScrollBarThickness = 8
+ScriptList.Parent = Frame
+
+local ScriptListCorner = Instance.new("UICorner")
+ScriptListCorner.CornerRadius = UDim.new(0, 8)
+ScriptListCorner.Parent = ScriptList
+
+-- Układ dla listy
+local UIListLayout = Instance.new("UIListLayout")
+UIListLayout.Padding = UDim.new(0, 5)
+UIListLayout.Parent = ScriptList
+
+-- Obsługa przycisku "Załaduj"
+LoadButton.MouseButton1Click:Connect(function()
+    local scriptContent = TextBox.Text
+    local scriptName = NameBox.Text
+    if scriptContent and scriptContent ~= "" and scriptName and scriptName ~= "" then
+        executeAndSaveScript(scriptContent, scriptName)
+        createScriptButton(scriptName, ScriptList, TextBox)
+        ScriptList.CanvasSize = UDim2.new(0, 0, 0, UIListLayout.AbsoluteContentSize.Y)
+    else
+        warn("Wklej kod i podaj nazwę skryptu!")
+    end
+end)
+
+-- Obsługa przycisku "Wczytaj"
+ReloadButton.MouseButton1Click:Connect(function()
+    local scriptName = NameBox.Text
+    if scriptName and scriptName ~= "" then
+        loadScriptFromDataStore(scriptName, TextBox)
+    else
+        warn("Podaj nazwę skryptu do wczytania!")
+    end
+end)
+
+-- Wczytaj istniejące skrypty z DataStore (przy starcie)
+local function loadExistingScripts()
+    local success, keys = pcall(function()
+        return ScriptStore:ListKeysAsync()
+    end)
+    if success then
+        for _, key in pairs(keys:GetCurrentPage()) do
+            local scriptName = key.KeyName:gsub("Script_", "")
+            createScriptButton(scriptName, ScriptList, TextBox)
+        end
+        ScriptList.CanvasSize = UDim2.new(0, 0, 0, UIListLayout.AbsoluteContentSize.Y)
+    end
+end
+loadExistingScripts()
+end
+
+-- Uruchom UI
+createUI()

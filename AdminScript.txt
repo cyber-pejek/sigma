@@ -1,0 +1,423 @@
+-- Skrypt administracyjny w stylu Infinite Yield dla loadstring
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
+local Lighting = game:GetService("Lighting")
+
+-- Lokalne zmienne
+local player = Players.LocalPlayer
+local mouse = player:GetMouse()
+local flying = false
+local noclip = false
+local godmode = false
+local aimbot = false
+local espEnabled = false
+
+-- Tworzenie ScreenGui
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "AdminGui"
+screenGui.ResetOnSpawn = false
+screenGui.Enabled = true
+screenGui.Parent = player:WaitForChild("PlayerGui")
+print("ScreenGui utworzone dla: " .. player.Name)
+
+-- Przycisk aktywujący
+local toggleButton = Instance.new("TextButton")
+toggleButton.Size = UDim2.new(0, 60, 0, 60)
+toggleButton.Position = UDim2.new(0, 10, 0, 10)
+toggleButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+toggleButton.Text = "🛠️"
+toggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+toggleButton.TextScaled = true
+toggleButton.Font = Enum.Font.GothamBold
+toggleButton.Parent = screenGui
+print("Przycisk aktywujący utworzony")
+
+local toggleCorner = Instance.new("UICorner")
+toggleCorner.CornerRadius = UDim.new(0, 12)
+toggleCorner.Parent = toggleButton
+
+-- Ramka GUI
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 300, 0, 400)
+frame.Position = UDim2.new(0.5, -150, 0.5, -200)
+frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+frame.BorderSizePixel = 0
+frame.Visible = false
+frame.Parent = screenGui
+
+local gradient = Instance.new("UIGradient")
+gradient.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(50, 50, 50)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(20, 20, 20))
+})
+gradient.Rotation = 45
+gradient.Parent = frame
+
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 10)
+corner.Parent = frame
+
+-- Tytuł
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, 0, 0, 40)
+title.BackgroundTransparency = 1
+title.Text = "Komendy Admina"
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.TextScaled = true
+title.Font = Enum.Font.GothamBold
+title.Parent = frame
+
+-- Pole tekstowe do komend
+local commandBox = Instance.new("TextBox")
+commandBox.Size = UDim2.new(0.8, 0, 0, 40)
+commandBox.Position = UDim2.new(0.1, 0, 0.1, 0)
+commandBox.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+commandBox.Text = "Wpisz komendę (np. :fly)"
+commandBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+commandBox.TextScaled = true
+commandBox.Font = Enum.Font.Gotham
+commandBox.Parent = frame
+
+local cmdCorner = Instance.new("UICorner")
+cmdCorner.CornerRadius = UDim.new(0, 8)
+cmdCorner.Parent = commandBox
+
+-- Lista graczy
+local playerListFrame = Instance.new("ScrollingFrame")
+playerListFrame.Size = UDim2.new(0.8, 0, 0, 150)
+playerListFrame.Position = UDim2.new(0.1, 0, 0.2, 0)
+playerListFrame.BackgroundTransparency = 1
+playerListFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+playerListFrame.Parent = frame
+
+local playerListLayout = Instance.new("UIListLayout")
+playerListLayout.Padding = UDim.new(0, 5)
+playerListLayout.Parent = playerListFrame
+
+-- Funkcje pomocnicze
+local function getPlayer(name)
+    if name then
+        for _, p in ipairs(Players:GetPlayers()) do
+            if string.lower(p.Name):sub(1, #name) == string.lower(name) then
+                return p
+            end
+        end
+    end
+    return nil
+end
+
+local function updatePlayerList()
+    if not playerListFrame then return end
+    playerListFrame:ClearAllChildren()
+    playerListFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+    playerListLayout.Parent = playerListFrame
+    
+    local players = Players:GetPlayers()
+    for _, p in ipairs(players) do
+        local button = Instance.new("TextButton")
+        button.Size = UDim2.new(1, 0, 0, 30)
+        button.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+        button.Text = p.Name
+        button.TextColor3 = Color3.fromRGB(255, 255, 255)
+        button.TextScaled = true
+        button.Font = Enum.Font.Gotham
+        button.Parent = playerListFrame
+        
+        local btnCorner = Instance.new("UICorner")
+        btnCorner.CornerRadius = UDim.new(0, 8)
+        btnCorner.Parent = button
+        
+        button.MouseButton1Click:Connect(function()
+            commandBox.Text = ":" .. commandBox.Text:match("^:(.+)") .. " " .. p.Name
+            print("Wybrano gracza: " .. p.Name)
+        end)
+    end
+    playerListFrame.CanvasSize = UDim2.new(0, 0, 0, #players * 35)
+end
+
+Players.PlayerAdded:Connect(updatePlayerList)
+Players.PlayerRemoving:Connect(updatePlayerList)
+updatePlayerList()
+
+-- Funkcje administracyjne
+local function fly(target)
+    if target and target.Character then
+        if target.Character:FindFirstChild("HumanoidRootPart") then
+            flying = not flying
+            if flying then
+                local bv = Instance.new("BodyVelocity")
+                bv.Name = "FlyVelocity"
+                bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+                bv.Parent = target.Character.HumanoidRootPart
+                
+                RunService.RenderStepped:Connect(function()
+                    if flying and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
+                        local cam = Workspace.CurrentCamera
+                        local moveDir = Vector3.new(0, 0, 0)
+                        if UserInputService:IsKeyDown(Enum.KeyCode.W) then
+                            moveDir = moveDir + cam.CFrame.LookVector
+                        end
+                        if UserInputService:IsKeyDown(Enum.KeyCode.S) then
+                            moveDir = moveDir - cam.CFrame.LookVector
+                        end
+                        if UserInputService:IsKeyDown(Enum.KeyCode.A) then
+                            moveDir = moveDir - cam.CFrame.RightVector
+                        end
+                        if UserInputService:IsKeyDown(Enum.KeyCode.D) then
+                            moveDir = moveDir + cam.CFrame.RightVector
+                        end
+                        bv.Velocity = moveDir * 50
+                    else
+                        bv:Destroy()
+                    end
+                end)
+                print("Włączono fly dla: " .. target.Name)
+            else
+                if target.Character:FindFirstChild("HumanoidRootPart") then
+                    local bv = target.Character.HumanoidRootPart:FindFirstChild("FlyVelocity")
+                    if bv then bv:Destroy() end
+                end
+                print("Wyłączono fly dla: " .. target.Name)
+            end
+        end
+    end
+end
+
+local function noclip(target)
+    if target and target.Character then
+        noclip = not noclip
+        RunService.Stepped:Connect(function()
+            if noclip and target.Character then
+                for _, part in pairs(target.Character:GetDescendants()) do
+                    if part:IsA("BasePart") then
+                        part.CanCollide = false
+                    end
+                end
+            end
+        end)
+        print(noclip and "Włączono noclip dla: " .. target.Name or "Wyłączono noclip dla: " .. target.Name)
+    end
+end
+
+local function speed(target, value)
+    if target and target.Character then
+        if target.Character:FindFirstChild("Humanoid") then
+            target.Character.Humanoid.WalkSpeed = tonumber(value) or 50
+            print("Ustawiono prędkość " .. (tonumber(value) or 50) .. " dla: " .. target.Name)
+        end
+    end
+end
+
+local function unspeed(target)
+    if target and target.Character then
+        if target.Character:FindFirstChild("Humanoid") then
+            target.Character.Humanoid.WalkSpeed = 16
+            print("Przywrócono prędkość dla: " .. target.Name)
+        end
+    end
+end
+
+local function invis(target)
+    if target and target.Character then
+        for _, part in pairs(target.Character:GetDescendants()) do
+            if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
+                part.Transparency = 1
+            end
+        end
+        print("Włączono niewidzialność dla: " .. target.Name)
+    end
+end
+
+local function uninvis(target)
+    if target and target.Character then
+        for _, part in pairs(target.Character:GetDescendants()) do
+            if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
+                part.Transparency = 0
+            end
+        end
+        print("Wyłączono niewidzialność dla: " .. target.Name)
+    end
+end
+
+local function tp(target, destination)
+    if target and target.Character and destination and destination.Character then
+        if target.Character:FindFirstChild("HumanoidRootPart") and destination.Character:FindFirstChild("HumanoidRootPart") then
+            target.Character.HumanoidRootPart.CFrame = destination.Character.HumanoidRootPart.CFrame
+            print("Teleportowano " .. target.Name .. " do " .. destination.Name)
+        end
+    end
+end
+
+local function kill(target)
+    if target and target.Character then
+        if target.Character:FindFirstChild("Humanoid") then
+            target.Character.Humanoid.Health = 0
+            print("Zabito: " .. target.Name)
+        end
+    end
+end
+
+local function grav(value)
+    Workspace.Gravity = tonumber(value) or 20
+    print("Ustawiono grawitację na: " .. (tonumber(value) or 20))
+end
+
+local function ungrav()
+    Workspace.Gravity = 196.2
+    print("Przywrócono grawitację")
+end
+
+local function esp(target)
+    if target and target.Character then
+        espEnabled = true
+        local highlight = Instance.new("Highlight")
+        highlight.FillColor = Color3.fromRGB(255, 0, 0)
+        highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+        highlight.Parent = target.Character
+        print("Włączono ESP dla: " .. target.Name)
+    end
+end
+
+local function aimbot()
+    aimbot = not aimbot
+    if aimbot then
+        RunService.RenderStepped:Connect(function()
+            if aimbot then
+                local closest = nil
+                local closestDist = math.huge
+                for _, p in ipairs(Players:GetPlayers()) do
+                    if p ~= player and p.Character and p.Character:FindFirstChild("Head") then
+                        local dist = (p.Character.Head.Position - mouse.Hit.Position).Magnitude
+                        if dist < closestDist then
+                            closest = p
+                            closestDist = dist
+                        end
+                    end
+                end
+                if closest then
+                    Workspace.CurrentCamera.CFrame = CFrame.new(Workspace.CurrentCamera.CFrame.Position, closest.Character.Head.Position)
+                end
+            end
+        end)
+        print("Włączono aimbot")
+    else
+        print("Wyłączono aimbot")
+    end
+end
+
+local function godmode(target)
+    if target and target.Character then
+        if target.Character:FindFirstChild("Humanoid") then
+            godmode = not godmode
+            target.Character.Humanoid.MaxHealth = godmode and math.huge or 100
+            target.Character.Humanoid.Health = godmode and math.huge or 100
+            print(godmode and "Włączono godmode dla: " .. target.Name or "Wyłączono godmode dla: " .. target.Name)
+        end
+    end
+end
+
+local function jumppower(target, value)
+    if target and target.Character then
+        if target.Character:FindFirstChild("Humanoid") then
+            target.Character.Humanoid.JumpPower = tonumber(value) or 100
+            print("Ustawiono siłę skoku " .. (tonumber(value) or 100) .. " dla: " .. target.Name)
+        end
+    end
+end
+
+local function clicktp()
+    mouse.Button1Down:Connect(function()
+        if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+            player.Character.HumanoidRootPart.CFrame = CFrame.new(mouse.Hit.Position + Vector3.new(0, 5, 0))
+            print("Teleportowano na kliknięcie")
+        end
+    end)
+    print("Włączono clicktp")
+end
+
+local function freecam()
+    local cam = Workspace.CurrentCamera
+    cam.CameraType = Enum.CameraType.Scriptable
+    RunService.RenderStepped:Connect(function()
+        local moveDir = Vector3.new(0, 0, 0)
+        if UserInputService:IsKeyDown(Enum.KeyCode.W) then
+            moveDir = moveDir + cam.CFrame.LookVector
+        end
+        if UserInputService:IsKeyDown(Enum.KeyCode.S) then
+            moveDir = moveDir - cam.CFrame.LookVector
+        end
+        if UserInputService:IsKeyDown(Enum.KeyCode.A) then
+            moveDir = moveDir - cam.CFrame.RightVector
+        end
+        if UserInputService:IsKeyDown(Enum.KeyCode.D) then
+            moveDir = moveDir + cam.CFrame.RightVector
+        end
+        cam.CFrame = cam.CFrame + moveDir * 0.5
+    end)
+    print("Włączono freecam")
+end
+
+-- Obsługa komend
+commandBox.FocusLost:Connect(function(enterPressed)
+    if enterPressed then
+        local input = commandBox.Text:lower()
+        local args = {}
+        for arg in input:gmatch("%S+") do
+            table.insert(args, arg)
+        end
+        
+        local cmd = args[1] and args[1]:sub(2) or ""
+        local targetName = args[2]
+        local value = args[3]
+        local target = getPlayer(targetName)
+        
+        if cmd == "fly" then
+            fly(target or player)
+        elseif cmd == "noclip" then
+            noclip(target or player)
+        elseif cmd == "speed" then
+            speed(target or player, value)
+        elseif cmd == "unspeed" then
+            unspeed(target or player)
+        elseif cmd == "invis" then
+            invis(target or player)
+        elseif cmd == "uninvis" then
+            uninvis(target or player)
+        elseif cmd == "tp" then
+            local dest = getPlayer(args[3])
+            tp(target or player, dest)
+        elseif cmd == "kill" then
+            kill(target or player)
+        elseif cmd == "grav" then
+            grav(value)
+        elseif cmd == "ungrav" then
+            ungrav()
+        elseif cmd == "esp" then
+            esp(target or player)
+        elseif cmd == "aimbot" then
+            aimbot()
+        elseif cmd == "godmode" then
+            godmode(target or player)
+        elseif cmd == "jumppower" then
+            jumppower(target or player, value)
+        elseif cmd == "clicktp" then
+            clicktp()
+        elseif cmd == "freecam" then
+            freecam()
+        else
+            print("Nieznana komenda: " .. cmd)
+        end
+    end
+end)
+
+-- Przełączanie GUI
+toggleButton.MouseButton1Click:Connect(function()
+    if frame then
+        frame.Visible = not frame.Visible
+        print("GUI widoczne: " .. tostring(frame.Visible))
+    else
+        print("Błąd: Ramka GUI nie istnieje")
+    end
+end)

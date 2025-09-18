@@ -12,10 +12,12 @@ local noclip = false
 local godmode = false
 local aimbot = false
 local espEnabled = false
+local clicktpConnection = nil
+local freecamConnection = nil
 
 -- Tworzenie ScreenGui
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "AdminGui"
+screenGui.Name = "SimpleAdminGui"
 screenGui.ResetOnSpawn = false
 screenGui.Enabled = true
 screenGui.Parent = player:WaitForChild("PlayerGui")
@@ -23,36 +25,35 @@ print("ScreenGui utworzone dla: " .. player.Name)
 
 -- Ramka GUI
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 350, 0, 450)
-frame.Position = UDim2.new(0.5, -175, 0.5, -225)
-frame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+frame.Size = UDim2.new(0, 350, 0, 500)
+frame.Position = UDim2.new(0.5, -175, 0.5, -250)
+frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 frame.BorderSizePixel = 0
-frame.Visible = true -- GUI widoczne od razu
+frame.Visible = false
 frame.Parent = screenGui
-
-local gradient = Instance.new("UIGradient")
-gradient.Color = ColorSequence.new({
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(45, 45, 45)),
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(15, 15, 15))
-})
-gradient.Rotation = 45
-gradient.Parent = frame
 
 local corner = Instance.new("UICorner")
 corner.CornerRadius = UDim.new(0, 12)
 corner.Parent = frame
 
--- Dodanie cienia
-local shadow = Instance.new("UIStroke")
-shadow.Thickness = 2
-shadow.Color = Color3.fromRGB(0, 0, 0)
-shadow.Transparency = 0.7
-shadow.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-shadow.Parent = frame
+local gradient = Instance.new("UIGradient")
+gradient.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(50, 50, 50)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(20, 20, 20))
+})
+gradient.Rotation = 45
+gradient.Parent = frame
+
+local stroke = Instance.new("UIStroke")
+stroke.Thickness = 2
+stroke.Color = Color3.fromRGB(0, 0, 0)
+stroke.Transparency = 0.7
+stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+stroke.Parent = frame
 
 -- Tytuł
 local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1, 0, 0, 50)
+title.Size = UDim2.new(1, 0, 0, 40)
 title.BackgroundTransparency = 1
 title.Text = "Panel Administracyjny"
 title.TextColor3 = Color3.fromRGB(200, 200, 255)
@@ -61,47 +62,126 @@ title.Font = Enum.Font.GothamBold
 title.TextStrokeTransparency = 0.8
 title.Parent = frame
 
--- Pole tekstowe do komend
-local commandBox = Instance.new("TextBox")
-commandBox.Size = UDim2.new(0.9, 0, 0, 40)
-commandBox.Position = UDim2.new(0.05, 0, 0.12, 0)
-commandBox.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-commandBox.Text = "Wpisz komendę (np. :fly)"
-commandBox.TextColor3 = Color3.fromRGB(255, 255, 255)
-commandBox.TextScaled = true
-commandBox.Font = Enum.Font.Gotham
-commandBox.ClearTextOnFocus = true
-commandBox.Parent = frame
+-- Zakładki
+local tabFrame = Instance.new("Frame")
+tabFrame.Size = UDim2.new(1, 0, 0, 30)
+tabFrame.Position = UDim2.new(0, 0, 0, 40)
+tabFrame.BackgroundTransparency = 1
+tabFrame.Parent = frame
 
-local cmdCorner = Instance.new("UICorner")
-cmdCorner.CornerRadius = UDim.new(0, 8)
-cmdCorner.Parent = commandBox
+local tabLayout = Instance.new("UIListLayout")
+tabLayout.FillDirection = Enum.FillDirection.Horizontal
+tabLayout.Padding = UDim.new(0, 5)
+tabLayout.Parent = tabFrame
 
-local cmdStroke = Instance.new("UIStroke")
-cmdStroke.Thickness = 1
-cmdStroke.Color = Color3.fromRGB(100, 100, 100)
-cmdStroke.Transparency = 0.5
-cmdStroke.Parent = commandBox
+-- Kontener na zawartość zakładek
+local contentFrame = Instance.new("Frame")
+contentFrame.Size = UDim2.new(1, -20, 1, -80)
+contentFrame.Position = UDim2.new(0, 10, 0, 70)
+contentFrame.BackgroundTransparency = 1
+contentFrame.Parent = frame
 
--- Lista graczy
-local playerListFrame = Instance.new("ScrollingFrame")
-playerListFrame.Size = UDim2.new(0.9, 0, 0, 300)
-playerListFrame.Position = UDim2.new(0.05, 0, 0.22, 0)
-playerListFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-playerListFrame.BackgroundTransparency = 0.2
-playerListFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
-playerListFrame.ScrollBarThickness = 4
-playerListFrame.Parent = frame
+-- Funkcja do tworzenia zakładek
+local function createTab(name, content)
+    local tabButton = Instance.new("TextButton")
+    tabButton.Size = UDim2.new(0, 80, 0, 30)
+    tabButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    tabButton.Text = name
+    tabButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    tabButton.TextScaled = true
+    tabButton.Font = Enum.Font.Gotham
+    tabButton.Parent = tabFrame
 
-local playerListCorner = Instance.new("UICorner")
-playerListCorner.CornerRadius = UDim.new(0, 8)
-playerListCorner.Parent = playerListFrame
+    local tabCorner = Instance.new("UICorner")
+    tabCorner.CornerRadius = UDim.new(0, 6)
+    tabCorner.Parent = tabButton
 
-local playerListLayout = Instance.new("UIListLayout")
-playerListLayout.Padding = UDim.new(0, 5)
-playerListLayout.Parent = playerListFrame
+    tabButton.MouseButton1Click:Connect(function()
+        for _, child in pairs(contentFrame:GetChildren()) do
+            child.Visible = false
+        end
+        content.Visible = true
+    end)
+    return content
+end
 
--- Funkcje pomocnicze
+-- Zakładki
+local movementTab = Instance.new("Frame")
+movementTab.Size = UDim2.new(1, 0, 1, 0)
+movementTab.BackgroundTransparency = 1
+movementTab.Visible = false
+movementTab.Parent = contentFrame
+
+local characterTab = Instance.new("Frame")
+characterTab.Size = UDim2.new(1, 0, 1, 0)
+characterTab.BackgroundTransparency = 1
+characterTab.Visible = false
+characterTab.Parent = contentFrame
+
+local worldTab = Instance.new("Frame")
+worldTab.Size = UDim2.new(1, 0, 1, 0)
+worldTab.BackgroundTransparency = 1
+worldTab.Visible = false
+worldTab.Parent = contentFrame
+
+local otherTab = Instance.new("Frame")
+otherTab.Size = UDim2.new(1, 0, 1, 0)
+otherTab.BackgroundTransparency = 1
+otherTab.Visible = false
+otherTab.Parent = contentFrame
+
+createTab("Ruch", movementTab)
+createTab("Postać", characterTab)
+createTab("Świat", worldTab)
+createTab("Inne", otherTab)
+
+-- Układ przycisków
+local function createButtonLayout(parent)
+    local layout = Instance.new("UIListLayout")
+    layout.Padding = UDim.new(0, 10)
+    layout.Parent = parent
+end
+
+createButtonLayout(movementTab)
+createButtonLayout(characterTab)
+createButtonLayout(worldTab)
+createButtonLayout(otherTab)
+
+-- Funkcja do tworzenia przycisków
+local function createToggleButton(parent, text, callbackOn, callbackOff)
+    local button = Instance.new("TextButton")
+    button.Size = UDim2.new(1, -10, 0, 40)
+    button.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+    button.Text = text .. ": OFF"
+    button.TextColor3 = Color3.fromRGB(255, 255, 255)
+    button.TextScaled = true
+    button.Font = Enum.Font.Gotham
+    button.Parent = parent
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 8)
+    corner.Parent = button
+
+    local stroke = Instance.new("UIStroke")
+    stroke.Thickness = 1
+    stroke.Color = Color3.fromRGB(150, 150, 150)
+    stroke.Transparency = 0.6
+    stroke.Parent = button
+
+    local isOn = false
+    button.MouseButton1Click:Connect(function()
+        isOn = not isOn
+        button.Text = text .. (isOn and ": ON" or ": OFF")
+        button.BackgroundColor3 = isOn and Color3.fromRGB(0, 120, 0) or Color3.fromRGB(70, 70, 70)
+        if isOn then
+            callbackOn()
+        else
+            callbackOff()
+        end
+    end)
+end
+
+-- Funkcje administracyjne
 local function getPlayer(name)
     if name then
         for _, p in ipairs(Players:GetPlayers()) do
@@ -113,233 +193,252 @@ local function getPlayer(name)
     return nil
 end
 
-local function updatePlayerList()
-    if not playerListFrame then return end
-    playerListFrame:ClearAllChildren()
-    playerListFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
-    playerListLayout.Parent = playerListFrame
-    
-    local players = Players:GetPlayers()
-    for _, p in ipairs(players) do
-        local button = Instance.new("TextButton")
-        button.Size = UDim2.new(1, -10, 0, 35)
-        button.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
-        button.Text = p.Name
-        button.TextColor3 = Color3.fromRGB(255, 255, 255)
-        button.TextScaled = true
-        button.Font = Enum.Font.Gotham
-        button.Parent = playerListFrame
-        
-        local btnCorner = Instance.new("UICorner")
-        btnCorner.CornerRadius = UDim.new(0, 8)
-        btnCorner.Parent = button
-        
-        local btnStroke = Instance.new("UIStroke")
-        btnStroke.Thickness = 1
-        btnStroke.Color = Color3.fromRGB(150, 150, 150)
-        btnStroke.Transparency = 0.6
-        btnStroke.Parent = button
-        
-        button.MouseButton1Click:Connect(function()
-            commandBox.Text = ":" .. (commandBox.Text:match("^:(.+)") or "") .. " " .. p.Name
-            print("Wybrano gracza: " .. p.Name)
-        end)
-    end
-    playerListFrame.CanvasSize = UDim2.new(0, 0, 0, #players * 40)
-end
+local function flyOn()
+    if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+        flying = true
+        local bv = Instance.new("BodyVelocity")
+        bv.Name = "FlyVelocity"
+        bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+        bv.Parent = player.Character.HumanoidRootPart
 
-Players.PlayerAdded:Connect(updatePlayerList)
-Players.PlayerRemoving:Connect(updatePlayerList)
-updatePlayerList()
-
--- Funkcje administracyjne
-local function fly(target)
-    if target and target.Character then
-        if target.Character:FindFirstChild("HumanoidRootPart") then
-            flying = not flying
-            if flying then
-                local bv = Instance.new("BodyVelocity")
-                bv.Name = "FlyVelocity"
-                bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
-                bv.Parent = target.Character.HumanoidRootPart
-                
-                RunService.RenderStepped:Connect(function()
-                    if flying and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
-                        local cam = Workspace.CurrentCamera
-                        local moveDir = Vector3.new(0, 0, 0)
-                        if UserInputService:IsKeyDown(Enum.KeyCode.W) then
-                            moveDir = moveDir + cam.CFrame.LookVector
-                        end
-                        if UserInputService:IsKeyDown(Enum.KeyCode.S) then
-                            moveDir = moveDir - cam.CFrame.LookVector
-                        end
-                        if UserInputService:IsKeyDown(Enum.KeyCode.A) then
-                            moveDir = moveDir - cam.CFrame.RightVector
-                        end
-                        if UserInputService:IsKeyDown(Enum.KeyCode.D) then
-                            moveDir = moveDir + cam.CFrame.RightVector
-                        end
-                        bv.Velocity = moveDir * 50
-                    else
-                        bv:Destroy()
-                    end
-                end)
-                print("Włączono fly dla: " .. target.Name)
+        RunService.RenderStepped:Connect(function()
+            if flying and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+                local cam = Workspace.CurrentCamera
+                local moveDir = Vector3.new(0, 0, 0)
+                if UserInputService:IsKeyDown(Enum.KeyCode.W) then
+                    moveDir = moveDir + cam.CFrame.LookVector
+                end
+                if UserInputService:IsKeyDown(Enum.KeyCode.S) then
+                    moveDir = moveDir - cam.CFrame.LookVector
+                end
+                if UserInputService:IsKeyDown(Enum.KeyCode.A) then
+                    moveDir = moveDir - cam.CFrame.RightVector
+                end
+                if UserInputService:IsKeyDown(Enum.KeyCode.D) then
+                    moveDir = moveDir + cam.CFrame.RightVector
+                end
+                bv.Velocity = moveDir * 50
             else
-                if target.Character:FindFirstChild("HumanoidRootPart") then
-                    local bv = target.Character.HumanoidRootPart:FindFirstChild("FlyVelocity")
-                    if bv then bv:Destroy() end
-                end
-                print("Wyłączono fly dla: " .. target.Name)
-            end
-        end
-    end
-end
-
-local function noclip(target)
-    if target and target.Character then
-        noclip = not noclip
-        RunService.Stepped:Connect(function()
-            if noclip and target.Character then
-                for _, part in pairs(target.Character:GetDescendants()) do
-                    if part:IsA("BasePart") then
-                        part.CanCollide = false
-                    end
-                end
+                bv:Destroy()
             end
         end)
-        print(noclip and "Włączono noclip dla: " .. target.Name or "Wyłączono noclip dla: " .. target.Name)
+        print("Włączono fly dla: " .. player.Name)
     end
 end
 
-local function speed(target, value)
-    if target and target.Character then
-        if target.Character:FindFirstChild("Humanoid") then
-            target.Character.Humanoid.WalkSpeed = tonumber(value) or 50
-            print("Ustawiono prędkość " .. (tonumber(value) or 50) .. " dla: " .. target.Name)
+local function flyOff()
+    flying = false
+    if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+        local bv = player.Character.HumanoidRootPart:FindFirstChild("FlyVelocity")
+        if bv then bv:Destroy() end
+    end
+    print("Wyłączono fly dla: " .. player.Name)
+end
+
+local function noclipOn()
+    noclip = true
+    RunService.Stepped:Connect(function()
+        if noclip and player.Character then
+            for _, part in pairs(player.Character:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    part.CanCollide = false
+                end
+            end
+        end
+    end)
+    print("Włączono noclip dla: " .. player.Name)
+end
+
+local function noclipOff()
+    noclip = false
+    if player.Character then
+        for _, part in pairs(player.Character:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.CanCollide = true
+            end
         end
     end
+    print("Wyłączono noclip dla: " .. player.Name)
 end
 
-local function unspeed(target)
-    if target and target.Character then
-        if target.Character:FindFirstChild("Humanoid") then
-            target.Character.Humanoid.WalkSpeed = 16
-            print("Przywrócono prędkość dla: " .. target.Name)
-        end
+local function godmodeOn()
+    if player.Character and player.Character:FindFirstChild("Humanoid") then
+        godmode = true
+        player.Character.Humanoid.MaxHealth = math.huge
+        player.Character.Humanoid.Health = math.huge
+        print("Włączono godmode dla: " .. player.Name)
     end
 end
 
-local function invis(target)
-    if target and target.Character then
-        for _, part in pairs(target.Character:GetDescendants()) do
+local function godmodeOff()
+    if player.Character and player.Character:FindFirstChild("Humanoid") then
+        godmode = false
+        player.Character.Humanoid.MaxHealth = 100
+        player.Character.Humanoid.Health = 100
+        print("Wyłączono godmode dla: " .. player.Name)
+    end
+end
+
+local function speedOn()
+    if player.Character and player.Character:FindFirstChild("Humanoid") then
+        player.Character.Humanoid.WalkSpeed = 50
+        print("Włączono speed dla: " .. player.Name)
+    end
+end
+
+local function speedOff()
+    if player.Character and player.Character:FindFirstChild("Humanoid") then
+        player.Character.Humanoid.WalkSpeed = 16
+        print("Wyłączono speed dla: " .. player.Name)
+    end
+end
+
+local function invisOn()
+    if player.Character then
+        for _, part in pairs(player.Character:GetDescendants()) do
             if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
                 part.Transparency = 1
             end
         end
-        print("Włączono niewidzialność dla: " .. target.Name)
+        print("Włączono niewidzialność dla: " .. player.Name)
     end
 end
 
-local function uninvis(target)
-    if target and target.Character then
-        for _, part in pairs(target.Character:GetDescendants()) do
+local function invisOff()
+    if player.Character then
+        for _, part in pairs(player.Character:GetDescendants()) do
             if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
                 part.Transparency = 0
             end
         end
-        print("Wyłączono niewidzialność dla: " .. target.Name)
+        print("Wyłączono niewidzialność dla: " .. player.Name)
     end
 end
 
-local function tp(target, destination)
-    if target and target.Character and destination and destination.Character then
-        if target.Character:FindFirstChild("HumanoidRootPart") and destination.Character:FindFirstChild("HumanoidRootPart") then
-            target.Character.HumanoidRootPart.CFrame = destination.Character.HumanoidRootPart.CFrame
-            print("Teleportowano " .. target.Name .. " do " .. destination.Name)
+local function tpOn()
+    -- Pole tekstowe do wpisania nazwy gracza
+    local tpBox = Instance.new("TextBox")
+    tpBox.Size = UDim2.new(1, -10, 0, 40)
+    tpBox.Position = UDim2.new(0, 5, 0, 50)
+    tpBox.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    tpBox.Text = "Wpisz nazwę gracza"
+    tpBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+    tpBox.TextScaled = true
+    tpBox.Font = Enum.Font.Gotham
+    tpBox.ClearTextOnFocus = true
+    tpBox.Parent = movementTab
+
+    local tpCorner = Instance.new("UICorner")
+    tpCorner.CornerRadius = UDim.new(0, 8)
+    tpCorner.Parent = tpBox
+
+    tpBox.FocusLost:Connect(function(enterPressed)
+        if enterPressed then
+            local target = getPlayer(tpBox.Text)
+            if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+                player.Character.HumanoidRootPart.CFrame = target.Character.HumanoidRootPart.CFrame
+                print("Teleportowano " .. player.Name .. " do " .. target.Name)
+            else
+                print("Nie znaleziono gracza lub brak HumanoidRootPart")
+            end
         end
+    end)
+end
+
+local function tpOff()
+    -- Usuwanie pola tekstowego nie jest konieczne, więc off jest pusty
+end
+
+local function killOn()
+    if player.Character and player.Character:FindFirstChild("Humanoid") then
+        player.Character.Humanoid.Health = 0
+        print("Zabito: " .. player.Name)
     end
 end
 
-local function kill(target)
-    if target and target.Character then
-        if target.Character:FindFirstChild("Humanoid") then
-            target.Character.Humanoid.Health = 0
-            print("Zabito: " .. target.Name)
-        end
-    end
+local function killOff()
+    -- Brak akcji dla wyłączania kill
 end
 
-local function grav(value)
-    Workspace.Gravity = tonumber(value) or 20
-    print("Ustawiono grawitację na: " .. (tonumber(value) or 20))
+local function gravityOn()
+    Workspace.Gravity = 20
+    print("Ustawiono grawitację na: 20")
 end
 
-local function ungrav()
+local function gravityOff()
     Workspace.Gravity = 196.2
     print("Przywrócono grawitację")
 end
 
-local function esp(target)
-    if target and target.Character then
-        espEnabled = true
-        local highlight = Instance.new("Highlight")
-        highlight.FillColor = Color3.fromRGB(255, 0, 0)
-        highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
-        highlight.Parent = target.Character
-        print("Włączono ESP dla: " .. target.Name)
+local function espOn()
+    espEnabled = true
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p ~= player and p.Character then
+            local highlight = Instance.new("Highlight")
+            highlight.FillColor = Color3.fromRGB(255, 0, 0)
+            highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+            highlight.Parent = p.Character
+        end
     end
+    print("Włączono ESP dla wszystkich graczy")
 end
 
-local function aimbot()
-    aimbot = not aimbot
-    if aimbot then
-        RunService.RenderStepped:Connect(function()
-            if aimbot then
-                local closest = nil
-                local closestDist = math.huge
-                for _, p in ipairs(Players:GetPlayers()) do
-                    if p ~= player and p.Character and p.Character:FindFirstChild("Head") then
-                        local dist = (p.Character.Head.Position - mouse.Hit.Position).Magnitude
-                        if dist < closestDist then
-                            closest = p
-                            closestDist = dist
-                        end
+local function espOff()
+    espEnabled = false
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p.Character then
+            local highlight = p.Character:FindFirstChildOfClass("Highlight")
+            if highlight then highlight:Destroy() end
+        end
+    end
+    print("Wyłączono ESP")
+end
+
+local function aimbotOn()
+    aimbot = true
+    RunService.RenderStepped:Connect(function()
+        if aimbot then
+            local closest = nil
+            local closestDist = math.huge
+            for _, p in ipairs(Players:GetPlayers()) do
+                if p ~= player and p.Character and p.Character:FindFirstChild("Head") then
+                    local dist = (p.Character.Head.Position - mouse.Hit.Position).Magnitude
+                    if dist < closestDist then
+                        closest = p
+                        closestDist = dist
                     end
                 end
-                if closest then
-                    Workspace.CurrentCamera.CFrame = CFrame.new(Workspace.CurrentCamera.CFrame.Position, closest.Character.Head.Position)
-                end
             end
-        end)
-        print("Włączono aimbot")
-    else
-        print("Wyłączono aimbot")
-    end
-end
-
-local function godmode(target)
-    if target and target.Character then
-        if target.Character:FindFirstChild("Humanoid") then
-            godmode = not godmode
-            target.Character.Humanoid.MaxHealth = godmode and math.huge or 100
-            target.Character.Humanoid.Health = godmode and math.huge or 100
-            print(godmode and "Włączono godmode dla: " .. target.Name or "Wyłączono godmode dla: " .. target.Name)
+            if closest then
+                Workspace.CurrentCamera.CFrame = CFrame.new(Workspace.CurrentCamera.CFrame.Position, closest.Character.Head.Position)
+            end
         end
+    end)
+    print("Włączono aimbot")
+end
+
+local function aimbotOff()
+    aimbot = false
+    print("Wyłączono aimbot")
+end
+
+local function jumppowerOn()
+    if player.Character and player.Character:FindFirstChild("Humanoid") then
+        player.Character.Humanoid.JumpPower = 100
+        print("Ustawiono siłę skoku na 100 dla: " .. player.Name)
     end
 end
 
-local function jumppower(target, value)
-    if target and target.Character then
-        if target.Character:FindFirstChild("Humanoid") then
-            target.Character.Humanoid.JumpPower = tonumber(value) or 100
-            print("Ustawiono siłę skoku " .. (tonumber(value) or 100) .. " dla: " .. target.Name)
-        end
+local function jumppowerOff()
+    if player.Character and player.Character:FindFirstChild("Humanoid") then
+        player.Character.Humanoid.JumpPower = 50
+        print("Przywrócono siłę skoku dla: " .. player.Name)
     end
 end
 
-local function clicktp()
-    mouse.Button1Down:Connect(function()
+local function clicktpOn()
+    if clicktpConnection then clicktpConnection:Disconnect() end
+    clicktpConnection = mouse.Button1Down:Connect(function()
         if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
             player.Character.HumanoidRootPart.CFrame = CFrame.new(mouse.Hit.Position + Vector3.new(0, 5, 0))
             print("Teleportowano na kliknięcie")
@@ -348,10 +447,19 @@ local function clicktp()
     print("Włączono clicktp")
 end
 
-local function freecam()
+local function clicktpOff()
+    if clicktpConnection then
+        clicktpConnection:Disconnect()
+        clicktpConnection = nil
+    end
+    print("Wyłączono clicktp")
+end
+
+local function freecamOn()
     local cam = Workspace.CurrentCamera
     cam.CameraType = Enum.CameraType.Scriptable
-    RunService.RenderStepped:Connect(function()
+    if freecamConnection then freecamConnection:Disconnect() end
+    freecamConnection = RunService.RenderStepped:Connect(function()
         local moveDir = Vector3.new(0, 0, 0)
         if UserInputService:IsKeyDown(Enum.KeyCode.W) then
             moveDir = moveDir + cam.CFrame.LookVector
@@ -370,58 +478,29 @@ local function freecam()
     print("Włączono freecam")
 end
 
--- Obsługa komend
-commandBox.FocusLost:Connect(function(enterPressed)
-    if enterPressed then
-        local input = commandBox.Text:lower()
-        local args = {}
-        for arg in input:gmatch("%S+") do
-            table.insert(args, arg)
-        end
-        
-        local cmd = args[1] and args[1]:sub(2) or ""
-        local targetName = args[2]
-        local value = args[3]
-        local target = getPlayer(targetName)
-        
-        if cmd == "fly" then
-            fly(target or player)
-        elseif cmd == "noclip" then
-            noclip(target or player)
-        elseif cmd == "speed" then
-            speed(target or player, value)
-        elseif cmd == "unspeed" then
-            unspeed(target or player)
-        elseif cmd == "invis" then
-            invis(target or player)
-        elseif cmd == "uninvis" then
-            uninvis(target or player)
-        elseif cmd == "tp" then
-            local dest = getPlayer(args[3])
-            tp(target or player, dest)
-        elseif cmd == "kill" then
-            kill(target or player)
-        elseif cmd == "grav" then
-            grav(value)
-        elseif cmd == "ungrav" then
-            ungrav()
-        elseif cmd == "esp" then
-            esp(target or player)
-        elseif cmd == "aimbot" then
-            aimbot()
-        elseif cmd == "godmode" then
-            godmode(target or player)
-        elseif cmd == "jumppower" then
-            jumppower(target or player, value)
-        elseif cmd == "clicktp" then
-            clicktp()
-        elseif cmd == "freecam" then
-            freecam()
-        else
-            print("Nieznana komenda: " .. cmd)
-        end
+local function freecamOff()
+    if freecamConnection then
+        freecamConnection:Disconnect()
+        freecamConnection = nil
     end
-end)
+    Workspace.CurrentCamera.CameraType = Enum.CameraType.Custom
+    print("Wyłączono freecam")
+end
+
+-- Dodanie przycisków do zakładek
+createToggleButton(movementTab, "Fly", flyOn, flyOff)
+createToggleButton(movementTab, "Noclip", noclipOn, noclipOff)
+createToggleButton(movementTab, "Speed", speedOn, speedOff)
+createToggleButton(movementTab, "Teleport", tpOn, tpOff)
+createToggleButton(movementTab, "ClickTP", clicktpOn, clicktpOff)
+createToggleButton(movementTab, "Freecam", freecamOn, freecamOff)
+createToggleButton(characterTab, "Godmode", godmodeOn, godmodeOff)
+createToggleButton(characterTab, "Invis", invisOn, invisOff)
+createToggleButton(characterTab, "JumpPower", jumppowerOn, jumppowerOff)
+createToggleButton(characterTab, "Kill", killOn, killOff)
+createToggleButton(worldTab, "Low Gravity", gravityOn, gravityOff)
+createToggleButton(worldTab, "ESP", espOn, espOff)
+createToggleButton(otherTab, "Aimbot", aimbotOn, aimbotOff)
 
 -- Przełączanie GUI klawiszem G
 UserInputService.InputBegan:Connect(function(input, gameProcessedEvent)
@@ -430,3 +509,6 @@ UserInputService.InputBegan:Connect(function(input, gameProcessedEvent)
         print("GUI widoczne: " .. tostring(frame.Visible))
     end
 end)
+
+-- Ustawienie pierwszej zakładki jako widocznej
+movementTab.Visible = true

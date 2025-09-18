@@ -1,0 +1,327 @@
+-- Executor 3.0 LocalScript
+-- Wkładaj do StarterPlayerScripts
+
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local StarterGui = game:GetService("StarterGui")
+
+-- ===== Konfiguracja kolorów =====
+local Colors = {
+	Color3.fromRGB(255, 0, 0),
+	Color3.fromRGB(0, 255, 0),
+	Color3.fromRGB(0, 0, 255),
+	Color3.fromRGB(255, 255, 0),
+	Color3.fromRGB(255, 0, 255),
+	Color3.fromRGB(0, 255, 255),
+	Color3.fromRGB(255, 128, 0),
+	Color3.fromRGB(128, 0, 255),
+	Color3.fromRGB(0, 128, 255),
+	Color3.fromRGB(128, 255, 0),
+	Color3.fromRGB(255, 0, 128),
+	Color3.fromRGB(0, 255, 128),
+	Color3.fromRGB(128, 128, 128),
+	Color3.fromRGB(255, 192, 203),
+	Color3.fromRGB(255, 165, 0),
+	Color3.fromRGB(0, 128, 0),
+	Color3.fromRGB(75, 0, 130),
+	Color3.fromRGB(255, 215, 0),
+	Color3.fromRGB(173, 216, 230),
+	Color3.fromRGB(0, 0, 0)
+}
+
+local currentColor = Colors[1]
+
+-- ===== GUI =====
+local screenGui = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"))
+screenGui.Name = "Executor3"
+
+local function createFrame(parent, size, pos, color)
+	local frame = Instance.new("Frame")
+	frame.Size = size
+	frame.Position = pos
+	frame.BackgroundColor3 = color
+	frame.BorderSizePixel = 0
+	frame.Parent = parent
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0, 6)
+	corner.Parent = frame
+	return frame
+end
+
+local mainFrame = createFrame(screenGui, UDim2.new(0, 500, 0, 400), UDim2.new(0.5, -250, 0.5, -200), currentColor)
+
+-- ===== Top Bar =====
+local topBar = createFrame(mainFrame, UDim2.new(1,0,0,30), UDim2.new(0,0,0,0), Color3.fromRGB(50,50,50))
+topBar.Active = true
+topBar.Draggable = true
+
+local title = Instance.new("TextLabel", topBar)
+title.Size = UDim2.new(1,-10,1,0)
+title.Position = UDim2.new(0,5,0,0)
+title.BackgroundTransparency = 1
+title.Text = "Executor 3.0"
+title.TextColor3 = Color3.fromRGB(255,255,255)
+title.Font = Enum.Font.SourceSansBold
+title.TextSize = 18
+title.TextXAlignment = Enum.TextXAlignment.Left
+
+-- ===== Tabs =====
+local tabs = {"Executor","Combat","Player","Destroy","Settings","Appearance"}
+local tabFrames = {}
+local tabButtons = {}
+
+for i, tabName in ipairs(tabs) do
+	local btn = Instance.new("TextButton", mainFrame)
+	btn.Size = UDim2.new(0, 80, 0, 25)
+	btn.Position = UDim2.new(0, 5 + (i-1)*85, 0, 35)
+	btn.Text = tabName
+	btn.BackgroundColor3 = Color3.fromRGB(70,70,70)
+	btn.TextColor3 = Color3.fromRGB(255,255,255)
+	btn.Font = Enum.Font.SourceSansBold
+	btn.TextSize = 14
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0,4)
+	corner.Parent = btn
+	tabButtons[tabName] = btn
+
+	local frame = createFrame(mainFrame, UDim2.new(1,-10,1,-70), UDim2.new(0,5,0,65), Color3.fromRGB(40,40,40))
+	frame.Visible = false
+	tabFrames[tabName] = frame
+end
+
+tabFrames["Executor"].Visible = true
+
+for name, btn in pairs(tabButtons) do
+	btn.MouseButton1Click:Connect(function()
+		for _, f in pairs(tabFrames) do f.Visible = false end
+		tabFrames[name].Visible = true
+	end)
+end
+
+-- ===== Executor Tab =====
+local executorTab = tabFrames["Executor"]
+
+local codeBox = Instance.new("TextBox", executorTab)
+codeBox.Size = UDim2.new(1,-20,0,200)
+codeBox.Position = UDim2.new(0,10,0,10)
+codeBox.BackgroundColor3 = Color3.fromRGB(60,60,60)
+codeBox.TextColor3 = Color3.fromRGB(255,255,255)
+codeBox.Text = "-- Write your Lua code here"
+codeBox.ClearTextOnFocus = false
+codeBox.MultiLine = true
+codeBox.TextWrapped = true
+codeBox.Font = Enum.Font.Code
+codeBox.TextSize = 14
+
+local executeButton = Instance.new("TextButton", executorTab)
+executeButton.Size = UDim2.new(0,100,0,30)
+executeButton.Position = UDim2.new(0,10,0,220)
+executeButton.Text = "Execute"
+executeButton.BackgroundColor3 = Color3.fromRGB(70,130,180)
+executeButton.TextColor3 = Color3.fromRGB(255,255,255)
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0,4)
+corner.Parent = executeButton
+
+executeButton.MouseButton1Click:Connect(function()
+	local code = codeBox.Text
+	local ok, err = pcall(function()
+		loadstring(code)()
+	end)
+	if not ok then
+		warn("Executor error:", err)
+	end
+end)
+
+-- ===== Chat Spam =====
+local chatBox = Instance.new("TextBox", executorTab)
+chatBox.Size = UDim2.new(0, 300, 0, 30)
+chatBox.Position = UDim2.new(0,120,0,220)
+chatBox.PlaceholderText = "Type chat spam here"
+
+local chatButton = Instance.new("TextButton", executorTab)
+chatButton.Size = UDim2.new(0,80,0,30)
+chatButton.Position = UDim2.new(0,430,0,220)
+chatButton.Text = "Spam"
+chatButton.BackgroundColor3 = Color3.fromRGB(180,70,70)
+chatButton.TextColor3 = Color3.fromRGB(255,255,255)
+local corner2 = Instance.new("UICorner")
+corner2.CornerRadius = UDim.new(0,4)
+corner2.Parent = chatButton
+
+local spamming = false
+chatButton.MouseButton1Click:Connect(function()
+	spamming = not spamming
+	if spamming then
+		chatButton.Text = "Stop"
+		while spamming do
+			local msg = chatBox.Text
+			if msg ~= "" then
+				LocalPlayer:Chat(msg) -- wysyła do oficjalnego Roblox Chat
+			end
+			wait(0.5)
+		end
+	else
+		chatButton.Text = "Spam"
+	end
+end)
+
+-- ===== Combat Tab (lokalnie) =====
+local combatTab = tabFrames["Combat"]
+
+-- Fly
+local flyEnabled = false
+local flyButton = Instance.new("TextButton", combatTab)
+flyButton.Size = UDim2.new(0,100,0,30)
+flyButton.Position = UDim2.new(0,10,0,10)
+flyButton.Text = "Fly"
+flyButton.BackgroundColor3 = Color3.fromRGB(70,130,180)
+flyButton.TextColor3 = Color3.fromRGB(255,255,255)
+local corner3 = Instance.new("UICorner")
+corner3.CornerRadius = UDim.new(0,4)
+corner3.Parent = flyButton
+
+flyButton.MouseButton1Click:Connect(function()
+	flyEnabled = not flyEnabled
+	if flyEnabled then flyButton.Text = "Fly ON" else flyButton.Text = "Fly OFF" end
+end)
+
+-- Fly logic (lokalne)
+local flying = false
+RunService.RenderStepped:Connect(function()
+	if flyEnabled and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+		local hrp = LocalPlayer.Character.HumanoidRootPart
+		hrp.Velocity = Vector3.new(0,0,0)
+		hrp.Anchored = true
+	else
+		if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+			LocalPlayer.Character.HumanoidRootPart.Anchored = false
+		end
+	end
+end)
+
+-- ===== Appearance Tab =====
+local appearanceTab = tabFrames["Appearance"]
+
+for i, col in ipairs(Colors) do
+	local btn = Instance.new("TextButton", appearanceTab)
+	btn.Size = UDim2.new(0,40,0,40)
+	btn.Position = UDim2.new(0,(i-1)*45,0,10)
+	btn.BackgroundColor3 = col
+	btn.Text = ""
+	btn.MouseButton1Click:Connect(function()
+		currentColor = col
+		mainFrame.BackgroundColor3 = col
+	end)
+	local corner4 = Instance.new("UICorner")
+	corner4.CornerRadius = UDim.new(0,6)
+	corner4.Parent = btn
+end
+
+-- ===== Player Tab (lokalny Kick/Ban wizualnie) =====
+local playerTab = tabFrames["Player"]
+
+local function createPlayerButton(name, pos, func)
+	local btn = Instance.new("TextButton", playerTab)
+	btn.Size = UDim2.new(0,120,0,30)
+	btn.Position = pos
+	btn.Text = name
+	btn.BackgroundColor3 = Color3.fromRGB(180,70,70)
+	btn.TextColor3 = Color3.fromRGB(255,255,255)
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0,4)
+	corner.Parent = btn
+	btn.MouseButton1Click:Connect(func)
+end
+
+createPlayerButton("Kick Visual", UDim2.new(0,10,0,10), function()
+	local label = Instance.new("TextLabel", screenGui)
+	label.Size = UDim2.new(0,200,0,50)
+	label.Position = UDim2.new(0.5,-100,0.1,0)
+	label.Text = "Player kicked! (Visual)"
+	label.TextColor3 = Color3.fromRGB(255,0,0)
+	label.Font = Enum.Font.SourceSansBold
+	label.TextSize = 24
+	wait(2)
+	label:Destroy()
+end)
+
+createPlayerButton("Ban Visual", UDim2.new(0,10,0,50), function()
+	local label = Instance.new("TextLabel", screenGui)
+	label.Size = UDim2.new(0,200,0,50)
+	label.Position = UDim2.new(0.5,-100,0.2,0)
+	label.Text = "Player banned! (Visual)"
+	label.TextColor3 = Color3.fromRGB(255,0,0)
+	label.Font = Enum.Font.SourceSansBold
+	label.TextSize = 24
+	wait(2)
+	label:Destroy()
+end)
+
+-- ===== Destroy Tab (lokalny / wizualny) =====
+local destroyTab = tabFrames["Destroy"]
+
+local destroyButton = Instance.new("TextButton", destroyTab)
+destroyButton.Size = UDim2.new(0,120,0,30)
+destroyButton.Position = UDim2.new(0,10,0,10)
+destroyButton.Text = "Destroy Map Visual"
+destroyButton.BackgroundColor3 = Color3.fromRGB(180,70,70)
+destroyButton.TextColor3 = Color3.fromRGB(255,255,255)
+local corner5 = Instance.new("UICorner")
+corner5.CornerRadius = UDim.new(0,4)
+corner5.Parent = destroyButton
+
+destroyButton.MouseButton1Click:Connect(function()
+	for _, part in ipairs(workspace:GetDescendants()) do
+		if part:IsA("BasePart") then
+			part.Color = Colors[math.random(1,#Colors)]
+		end
+	end
+	-- Zmiana Skybox lokalnie (dla Twojej gry)
+	if workspace:FindFirstChildOfClass("Sky") then
+		workspace:FindFirstChildOfClass("Sky").SkyboxBk = "rbxassetid://48965835" -- np. Bacon skin
+	end
+end)
+
+-- ===== Settings Tab (lokalne opcje) =====
+local settingsTab = tabFrames["Settings"]
+
+local spamRateLabel = Instance.new("TextLabel", settingsTab)
+spamRateLabel.Size = UDim2.new(0,200,0,30)
+spamRateLabel.Position = UDim2.new(0,10,0,10)
+spamRateLabel.Text = "Chat Spam Rate (s):"
+spamRateLabel.TextColor3 = Color3.fromRGB(255,255,255)
+spamRateLabel.Font = Enum.Font.SourceSansBold
+spamRateLabel.TextSize = 14
+spamRateLabel.BackgroundTransparency = 1
+
+local spamRateBox = Instance.new("TextBox", settingsTab)
+spamRateBox.Size = UDim2.new(0,50,0,30)
+spamRateBox.Position = UDim2.new(0,220,0,10)
+spamRateBox.Text = "0.5"
+spamRateBox.TextColor3 = Color3.fromRGB(255,255,255)
+spamRateBox.BackgroundColor3 = Color3.fromRGB(50,50,50)
+spamRateBox.ClearTextOnFocus = false
+
+chatButton.MouseButton1Click:Connect(function()
+	spamming = not spamming
+	if spamming then
+		chatButton.Text = "Stop"
+		while spamming do
+			local msg = chatBox.Text
+			if msg ~= "" then
+				local rate = tonumber(spamRateBox.Text) or 0.5
+				LocalPlayer:Chat(msg)
+				wait(rate)
+			end
+		end
+	else
+		chatButton.Text = "Spam"
+	end
+end)
+
+-- ===== Koniec Executor 3.0 =====

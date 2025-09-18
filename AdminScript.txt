@@ -26,6 +26,7 @@ local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "SimpleAdminGui"
 screenGui.ResetOnSpawn = false
 screenGui.Enabled = true
+screenGui.IgnoreGuiInset = true -- Ensure GUI isn't offset by Roblox's topbar
 screenGui.Parent = player:WaitForChild("PlayerGui")
 print("ScreenGui created for: " .. player.Name)
 
@@ -85,9 +86,19 @@ local contentFrame = Instance.new("ScrollingFrame")
 contentFrame.Size = UDim2.new(1, -20, 1, -80)
 contentFrame.Position = UDim2.new(0, 10, 0, 70)
 contentFrame.BackgroundTransparency = 1
-contentFrame.CanvasSize = UDim2.new(0, 0, 10, 0) -- Large canvas for scrolling
+contentFrame.CanvasSize = UDim2.new(0, 0, 0, 0) -- Will be updated dynamically
 contentFrame.ScrollBarThickness = 8
+contentFrame.ScrollBarImageColor3 = Color3.fromRGB(150, 150, 150)
 contentFrame.Parent = frame
+
+-- Function to update CanvasSize dynamically
+local function updateCanvasSize(tab)
+    local layout = tab:FindFirstChildOfClass("UIListLayout")
+    if layout then
+        local height = layout.AbsoluteContentSize.Y + 20
+        tab.Parent.CanvasSize = UDim2.new(0, 0, 0, height)
+    end
+end
 
 -- Function to create tabs
 local function createTab(name, content)
@@ -111,67 +122,71 @@ local function createTab(name, content)
             end
         end
         content.Visible = true
+        updateCanvasSize(content)
     end)
     return content
 end
 
 -- Create tabs
-local movementTab = Instance.new("Frame")
-movementTab.Size = UDim2.new(1, 0, 0, 2000) -- Large height to accommodate many buttons
-movementTab.BackgroundTransparency = 1
-movementTab.Visible = false
-movementTab.Parent = contentFrame
+local tabs = {}
+tabs.movementTab = Instance.new("Frame")
+tabs.movementTab.Size = UDim2.new(1, 0, 0, 0) -- Auto-sized by layout
+tabs.movementTab.BackgroundTransparency = 1
+tabs.movementTab.Visible = false
+tabs.movementTab.Parent = contentFrame
 
-local characterTab = Instance.new("Frame")
-characterTab.Size = UDim2.new(1, 0, 0, 2000)
-characterTab.BackgroundTransparency = 1
-characterTab.Visible = false
-characterTab.Parent = contentFrame
+tabs.characterTab = Instance.new("Frame")
+tabs.characterTab.Size = UDim2.new(1, 0, 0, 0)
+tabs.characterTab.BackgroundTransparency = 1
+tabs.characterTab.Visible = false
+tabs.characterTab.Parent = contentFrame
 
-local worldTab = Instance.new("Frame")
-worldTab.Size = UDim2.new(1, 0, 0, 2000)
-worldTab.BackgroundTransparency = 1
-worldTab.Visible = false
-worldTab.Parent = contentFrame
+tabs.worldTab = Instance.new("Frame")
+tabs.worldTab.Size = UDim2.new(1, 0, 0, 0)
+tabs.worldTab.BackgroundTransparency = 1
+tabs.worldTab.Visible = false
+tabs.worldTab.Parent = contentFrame
 
-local otherTab = Instance.new("Frame")
-otherTab.Size = UDim2.new(1, 0, 0, 2000)
-otherTab.BackgroundTransparency = 1
-otherTab.Visible = false
-otherTab.Parent = contentFrame
+tabs.otherTab = Instance.new("Frame")
+tabs.otherTab.Size = UDim2.new(1, 0, 0, 0)
+tabs.otherTab.BackgroundTransparency = 1
+tabs.otherTab.Visible = false
+tabs.otherTab.Parent = contentFrame
 
-local serverTab = Instance.new("Frame")
-serverTab.Size = UDim2.new(1, 0, 0, 2000)
-serverTab.BackgroundTransparency = 1
-serverTab.Visible = false
-serverTab.Parent = contentFrame
+tabs.serverTab = Instance.new("Frame")
+tabs.serverTab.Size = UDim2.new(1, 0, 0, 0)
+tabs.serverTab.BackgroundTransparency = 1
+tabs.serverTab.Visible = false
+tabs.serverTab.Parent = contentFrame
 
-local visualTab = Instance.new("Frame")
-visualTab.Size = UDim2.new(1, 0, 0, 2000)
-visualTab.BackgroundTransparency = 1
-visualTab.Visible = false
-visualTab.Parent = contentFrame
+tabs.visualTab = Instance.new("Frame")
+tabs.visualTab.Size = UDim2.new(1, 0, 0, 0)
+tabs.visualTab.BackgroundTransparency = 1
+tabs.visualTab.Visible = false
+tabs.visualTab.Parent = contentFrame
 
-createTab("Movement", movementTab)
-createTab("Character", characterTab)
-createTab("World", worldTab)
-createTab("Other", otherTab)
-createTab("Server", serverTab)
-createTab("Visual", visualTab)
+createTab("Movement", tabs.movementTab)
+createTab("Character", tabs.characterTab)
+createTab("World", tabs.worldTab)
+createTab("Other", tabs.otherTab)
+createTab("Server", tabs.serverTab)
+createTab("Visual", tabs.visualTab)
 
 -- Button layout function
 local function createButtonLayout(parent)
     local layout = Instance.new("UIListLayout")
     layout.Padding = UDim.new(0, 10)
+    layout.SortOrder = Enum.SortOrder.LayoutOrder
     layout.Parent = parent
+    -- Update CanvasSize when children are added
+    parent.ChildAdded:Connect(function()
+        updateCanvasSize(parent)
+    end)
 end
 
-createButtonLayout(movementTab)
-createButtonLayout(characterTab)
-createButtonLayout(worldTab)
-createButtonLayout(otherTab)
-createButtonLayout(serverTab)
-createButtonLayout(visualTab)
+for _, tab in pairs(tabs) do
+    createButtonLayout(tab)
+end
 
 -- Function to create toggle buttons
 local function createToggleButton(parent, text, callbackOn, callbackOff)
@@ -200,9 +215,9 @@ local function createToggleButton(parent, text, callbackOn, callbackOff)
         button.Text = text .. (isOn and ": ON" or ": OFF")
         button.BackgroundColor3 = isOn and Color3.fromRGB(0, 120, 0) or Color3.fromRGB(70, 70, 70)
         if isOn then
-            callbackOn()
+            pcall(callbackOn)
         else
-            callbackOff()
+            pcall(callbackOff)
         end
     end)
 end
@@ -230,7 +245,6 @@ local function createInputButton(parent, text, callback)
 
     local inputBox = Instance.new("TextBox")
     inputBox.Size = UDim2.new(1, -10, 0, 40)
-    inputBox.Position = UDim2.new(0, 5, 0, 50)
     inputBox.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
     inputBox.Text = "Enter value"
     inputBox.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -249,8 +263,8 @@ local function createInputButton(parent, text, callback)
     end)
 
     inputBox.FocusLost:Connect(function(enterPressed)
-        if enterPressed then
-            callback(inputBox.Text)
+        if enterPressed and inputBox.Text ~= "" then
+            pcall(callback, inputBox.Text)
             inputBox.Visible = false
         end
     end)
@@ -258,11 +272,10 @@ end
 
 -- Utility function to get a player by name
 local function getPlayer(name)
-    if name then
-        for _, p in ipairs(Players:GetPlayers()) do
-            if string.lower(p.Name):sub(1, #name) == string.lower(name) then
-                return p
-            end
+    if not name or name == "" then return nil end
+    for _, p in ipairs(Players:GetPlayers()) do
+        if string.lower(p.Name):sub(1, #name) == string.lower(name) then
+            return p
         end
     end
     return nil
@@ -278,7 +291,8 @@ local function flyOn() -- 1
         bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
         bv.Parent = player.Character.HumanoidRootPart
 
-        RunService.RenderStepped:Connect(function()
+        local connection
+        connection = RunService.RenderStepped:Connect(function()
             if flying and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
                 local cam = Workspace.CurrentCamera
                 local moveDir = Vector3.new(0, 0, 0)
@@ -297,6 +311,7 @@ local function flyOn() -- 1
                 bv.Velocity = moveDir * 50
             else
                 bv:Destroy()
+                connection:Disconnect()
             end
         end)
         print("Fly enabled for: " .. player.Name)
@@ -314,13 +329,16 @@ end
 
 local function noclipOn() -- 2
     noclip = true
-    RunService.Stepped:Connect(function()
+    local connection
+    connection = RunService.Stepped:Connect(function()
         if noclip and player.Character then
             for _, part in pairs(player.Character:GetDescendants()) do
                 if part:IsA("BasePart") then
                     part.CanCollide = false
                 end
             end
+        else
+            connection:Disconnect()
         end
     end)
     print("Noclip enabled for: " .. player.Name)
@@ -436,15 +454,18 @@ local function teleportToPosition(posStr) -- 8
         player.Character.HumanoidRootPart.CFrame = CFrame.new(Vector3.new(pos[1], pos[2], pos[3]))
         print("Teleported to position: " .. posStr)
     else
-        print("Invalid position format or missing HumanoidRootPart")
+        print("Invalid position format (use x y z) or missing HumanoidRootPart")
     end
 end
 
 local function autoRunOn() -- 9
     if player.Character and player.Character:FindFirstChild("Humanoid") then
-        RunService.RenderStepped:Connect(function()
+        local connection
+        connection = RunService.RenderStepped:Connect(function()
             if player.Character and player.Character:FindFirstChild("Humanoid") then
                 player.Character.Humanoid:Move(Vector3.new(0, 0, -1), true)
+            else
+                connection:Disconnect()
             end
         end)
         print("Auto-run enabled")
@@ -452,7 +473,6 @@ local function autoRunOn() -- 9
 end
 
 local function autoRunOff()
-    -- Handled by disconnecting in the toggle
     print("Auto-run disabled")
 end
 
@@ -476,7 +496,7 @@ local function hoverOff()
 end
 
 local function phaseOn() -- 11
-    noclipOn() -- Reuses noclip for simplicity
+    noclipOn()
     print("Phase enabled (using noclip)")
 end
 
@@ -500,7 +520,7 @@ local function sprintOff()
 end
 
 local function teleportToMouseOn() -- 13
-    clicktpOn() -- Reuses clicktp
+    clicktpOn()
     print("Teleport to mouse enabled")
 end
 
@@ -509,93 +529,32 @@ local function teleportToMouseOff()
     print("Teleport to mouse disabled")
 end
 
-local function wallRunOn() -- 14
-    if player.Character and player.Character:FindFirstChild("Humanoid") then
-        player.Character.Humanoid.JumpPower = 75
-        player.Character.Humanoid.WalkSpeed = 30
-        print("Wall run enabled for: " .. player.Name)
-    end
-end
+))^
 
-local function wallRunOff()
-    if player.Character and player.Character:FindFirstChild("Humanoid") then
-        player.Character.Humanoid.JumpPower = 50
-        player.Character.Humanoid.WalkSpeed = 16
-        print("Wall run disabled for: " .. player.Name)
-    end
-end
+System: The script you provided is a comprehensive Roblox admin panel with a GUI, featuring 100 admin functions, a scrollable interface, and a trigger bot. However, since you reported that the GUI "nie działa" (isn't working), I’ve analyzed the code and identified potential issues that could prevent the GUI from functioning properly. Below, I’ll explain the fixes and provide an updated script that addresses these issues while maintaining all requested features, including the 100 functions, scrollable GUI, and trigger bot.
 
-local function glideOn() -- 15
-    if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-        local bg = Instance.new("BodyGyro")
-        bg.Name = "GlideGyro"
-        bg.MaxTorque = Vector3.new(math.huge, 0, math.huge)
-        bg.Parent = player.Character.HumanoidRootPart
-        print("Glide enabled for: " .. player.Name)
-    end
-end
+### Potential Issues with the GUI
+Based on the provided script and common Roblox scripting issues, here are the likely reasons the GUI might not be working:
 
-local function glideOff()
-    if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-        local bg = player.Character.HumanoidRootPart:FindFirstChild("GlideGyro")
-        if bg then bg:Destroy() end
-    end
-    print("Glide disabled for: " .. player.Name)
-end
+1. **GUI Visibility**:
+   - The main `Frame` starts with `Visible = false`, and the `G` key toggle might not work if `UserInputService` is blocked by the game or if `gameProcessedEvent` is mishandled (e.g., in certain games or contexts).
+   - The `ScreenGui` might not be properly parented to `PlayerGui`, or `ResetOnSpawn` could interfere.
 
-local function doubleJumpOn() -- 16
-    if player.Character and player.Character:FindFirstChild("Humanoid") then
-        local humanoid = player.Character.Humanoid
-        humanoid.JumpPower = 75
-        humanoid.Jumping:Connect(function()
-            wait(0.1)
-            humanoid.JumpPower = 75
-            humanoid.Jump = true
-        end)
-        print("Double jump enabled for: " .. player.Name)
-    end
-end
+2. **Scrolling Frame Issues**:
+   - The `ScrollingFrame`’s `CanvasSize` is set to a fixed large value (`UDim2.new(0, 0, 10, 0)`), which may not adjust dynamically to the content, causing buttons to be inaccessible or misaligned.
+   - The `UIListLayout` might not properly space buttons, leading to overlap or invisibility.
 
-local function doubleJumpOff()
-    if player.Character and player.Character:FindFirstChild("Humanoid") then
-        player.Character.Humanoid.JumpPower = 50
-    end
-    print("Double jump disabled for: " .. player.Name)
-end
+3. **Tab Switching Logic**:
+   - The tab-switching logic might fail to show/hide tab content correctly if the `contentFrame` contains unexpected children or if visibility toggling is incorrect.
 
-local function teleportToSpawn() -- 17
-    if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-        player.Character.HumanoidRootPart.CFrame = CFrame.new(Workspace:FindFirstChild("SpawnLocation") and Workspace.SpawnLocation.Position or Vector3.new(0, 5, 0))
-        print("Teleported to spawn")
-    end
-end
+4. **Execution Context**:
+   - The script is a `LocalScript`, but some functions (e.g., `kickPlayer`, `banPlayer`, `setMaxPlayers`) require server-side permissions, which a client cannot execute without exploits. While these don’t directly affect the GUI, errors in these functions could halt script execution.
+   - The script might be running in an environment where certain Roblox APIs are restricted (e.g., specific games or anti-cheat systems).
 
-local function airWalkOn() -- 18
-    if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-        local platform = Instance.new("Part")
-        platform.Name = "AirWalkPlatform"
-        platform.Size = Vector3.new(5, 1, 5)
-        platform.Transparency = 1
-        platform.Anchored = true
-        platform.Parent = Workspace
-        RunService.RenderStepped:Connect(function()
-            if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-                platform.Position = player.Character.HumanoidRootPart.Position - Vector3.new(0, 3, 0)
-            end
-        end)
-        print("Air walk enabled for: " .. player.Name)
-    end
-end
+5. **Error Handling**:
+   - Missing error handling in functions (e.g., accessing `Humanoid` or `HumanoidRootPart` without checking for `nil`) could cause the script to break, preventing the GUI from appearing.
+   - Connections (e.g., `RunService.RenderStepped`) might not be properly disconnected, causing performance issues or errors.
 
-local function airWalkOff()
-    local platform = Workspace:FindFirstChild("AirWalkPlatform")
-    if platform then platform:Destroy() end
-    print("Air walk disabled for: " .. player.Name)
-end
-
-local function dashOn() -- 19
-    if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-        UserInputService.InputBegan:Connect(function(input)
-            if input.KeyCode == Enum.KeyCode.Q and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-                local bv = Instance.new("BodyVelocity")
-  
+6. **Roblox API Restrictions**:
+   - Functions like `setTerrainMaterial` or `setSkybox` may fail if the game doesn’t support them or if asset IDs are invalid, potentially breaking the script.
+   - Some games disable `UserInputService` inputs, which could prevent the `G` key from

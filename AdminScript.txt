@@ -1,4 +1,3 @@
--- Skrypt administracyjny w stylu Infinite Yield dla loadstring
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
@@ -22,75 +21,81 @@ screenGui.Enabled = true
 screenGui.Parent = player:WaitForChild("PlayerGui")
 print("ScreenGui utworzone dla: " .. player.Name)
 
--- Przycisk aktywujący
-local toggleButton = Instance.new("TextButton")
-toggleButton.Size = UDim2.new(0, 60, 0, 60)
-toggleButton.Position = UDim2.new(0, 10, 0, 10)
-toggleButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-toggleButton.Text = "🛠️"
-toggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-toggleButton.TextScaled = true
-toggleButton.Font = Enum.Font.GothamBold
-toggleButton.Parent = screenGui
-print("Przycisk aktywujący utworzony")
-
-local toggleCorner = Instance.new("UICorner")
-toggleCorner.CornerRadius = UDim.new(0, 12)
-toggleCorner.Parent = toggleButton
-
 -- Ramka GUI
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 300, 0, 400)
-frame.Position = UDim2.new(0.5, -150, 0.5, -200)
-frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+frame.Size = UDim2.new(0, 350, 0, 450)
+frame.Position = UDim2.new(0.5, -175, 0.5, -225)
+frame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 frame.BorderSizePixel = 0
-frame.Visible = false
+frame.Visible = true -- GUI widoczne od razu
 frame.Parent = screenGui
 
 local gradient = Instance.new("UIGradient")
 gradient.Color = ColorSequence.new({
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(50, 50, 50)),
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(20, 20, 20))
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(45, 45, 45)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(15, 15, 15))
 })
 gradient.Rotation = 45
 gradient.Parent = frame
 
 local corner = Instance.new("UICorner")
-corner.CornerRadius = UDim.new(0, 10)
+corner.CornerRadius = UDim.new(0, 12)
 corner.Parent = frame
+
+-- Dodanie cienia
+local shadow = Instance.new("UIStroke")
+shadow.Thickness = 2
+shadow.Color = Color3.fromRGB(0, 0, 0)
+shadow.Transparency = 0.7
+shadow.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+shadow.Parent = frame
 
 -- Tytuł
 local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1, 0, 0, 40)
+title.Size = UDim2.new(1, 0, 0, 50)
 title.BackgroundTransparency = 1
-title.Text = "Komendy Admina"
-title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.Text = "Panel Administracyjny"
+title.TextColor3 = Color3.fromRGB(200, 200, 255)
 title.TextScaled = true
 title.Font = Enum.Font.GothamBold
+title.TextStrokeTransparency = 0.8
 title.Parent = frame
 
 -- Pole tekstowe do komend
 local commandBox = Instance.new("TextBox")
-commandBox.Size = UDim2.new(0.8, 0, 0, 40)
-commandBox.Position = UDim2.new(0.1, 0, 0.1, 0)
-commandBox.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+commandBox.Size = UDim2.new(0.9, 0, 0, 40)
+commandBox.Position = UDim2.new(0.05, 0, 0.12, 0)
+commandBox.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
 commandBox.Text = "Wpisz komendę (np. :fly)"
 commandBox.TextColor3 = Color3.fromRGB(255, 255, 255)
 commandBox.TextScaled = true
 commandBox.Font = Enum.Font.Gotham
+commandBox.ClearTextOnFocus = true
 commandBox.Parent = frame
 
 local cmdCorner = Instance.new("UICorner")
 cmdCorner.CornerRadius = UDim.new(0, 8)
 cmdCorner.Parent = commandBox
 
+local cmdStroke = Instance.new("UIStroke")
+cmdStroke.Thickness = 1
+cmdStroke.Color = Color3.fromRGB(100, 100, 100)
+cmdStroke.Transparency = 0.5
+cmdStroke.Parent = commandBox
+
 -- Lista graczy
 local playerListFrame = Instance.new("ScrollingFrame")
-playerListFrame.Size = UDim2.new(0.8, 0, 0, 150)
-playerListFrame.Position = UDim2.new(0.1, 0, 0.2, 0)
-playerListFrame.BackgroundTransparency = 1
+playerListFrame.Size = UDim2.new(0.9, 0, 0, 300)
+playerListFrame.Position = UDim2.new(0.05, 0, 0.22, 0)
+playerListFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+playerListFrame.BackgroundTransparency = 0.2
 playerListFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+playerListFrame.ScrollBarThickness = 4
 playerListFrame.Parent = frame
+
+local playerListCorner = Instance.new("UICorner")
+playerListCorner.CornerRadius = UDim.new(0, 8)
+playerListCorner.Parent = playerListFrame
 
 local playerListLayout = Instance.new("UIListLayout")
 playerListLayout.Padding = UDim.new(0, 5)
@@ -117,8 +122,8 @@ local function updatePlayerList()
     local players = Players:GetPlayers()
     for _, p in ipairs(players) do
         local button = Instance.new("TextButton")
-        button.Size = UDim2.new(1, 0, 0, 30)
-        button.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+        button.Size = UDim2.new(1, -10, 0, 35)
+        button.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
         button.Text = p.Name
         button.TextColor3 = Color3.fromRGB(255, 255, 255)
         button.TextScaled = true
@@ -129,12 +134,18 @@ local function updatePlayerList()
         btnCorner.CornerRadius = UDim.new(0, 8)
         btnCorner.Parent = button
         
+        local btnStroke = Instance.new("UIStroke")
+        btnStroke.Thickness = 1
+        btnStroke.Color = Color3.fromRGB(150, 150, 150)
+        btnStroke.Transparency = 0.6
+        btnStroke.Parent = button
+        
         button.MouseButton1Click:Connect(function()
-            commandBox.Text = ":" .. commandBox.Text:match("^:(.+)") .. " " .. p.Name
+            commandBox.Text = ":" .. (commandBox.Text:match("^:(.+)") or "") .. " " .. p.Name
             print("Wybrano gracza: " .. p.Name)
         end)
     end
-    playerListFrame.CanvasSize = UDim2.new(0, 0, 0, #players * 35)
+    playerListFrame.CanvasSize = UDim2.new(0, 0, 0, #players * 40)
 end
 
 Players.PlayerAdded:Connect(updatePlayerList)
@@ -412,12 +423,10 @@ commandBox.FocusLost:Connect(function(enterPressed)
     end
 end)
 
--- Przełączanie GUI
-toggleButton.MouseButton1Click:Connect(function()
-    if frame then
+-- Przełączanie GUI klawiszem G
+UserInputService.InputBegan:Connect(function(input, gameProcessedEvent)
+    if not gameProcessedEvent and input.KeyCode == Enum.KeyCode.G then
         frame.Visible = not frame.Visible
         print("GUI widoczne: " .. tostring(frame.Visible))
-    else
-        print("Błąd: Ramka GUI nie istnieje")
     end
 end)

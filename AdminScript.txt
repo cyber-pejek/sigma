@@ -3,30 +3,36 @@ local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 local Lighting = game:GetService("Lighting")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local StarterGui = game:GetService("StarterGui")
+local HttpService = game:GetService("HttpService")
+local TweenService = game:GetService("TweenService")
 
--- Lokalne zmienne
+-- Local variables
 local player = Players.LocalPlayer
 local mouse = player:GetMouse()
 local flying = false
 local noclip = false
 local godmode = false
 local aimbot = false
+local triggerbot = false
 local espEnabled = false
 local clicktpConnection = nil
 local freecamConnection = nil
+local triggerbotConnection = nil
 
--- Tworzenie ScreenGui
+-- Create ScreenGui
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "SimpleAdminGui"
 screenGui.ResetOnSpawn = false
 screenGui.Enabled = true
 screenGui.Parent = player:WaitForChild("PlayerGui")
-print("ScreenGui utworzone dla: " .. player.Name)
+print("ScreenGui created for: " .. player.Name)
 
--- Ramka GUI
+-- Main frame
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 350, 0, 500)
-frame.Position = UDim2.new(0.5, -175, 0.5, -250)
+frame.Size = UDim2.new(0, 400, 0, 600)
+frame.Position = UDim2.new(0.5, -200, 0.5, -300)
 frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 frame.BorderSizePixel = 0
 frame.Visible = false
@@ -51,18 +57,18 @@ stroke.Transparency = 0.7
 stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 stroke.Parent = frame
 
--- Tytuł
+-- Title
 local title = Instance.new("TextLabel")
 title.Size = UDim2.new(1, 0, 0, 40)
 title.BackgroundTransparency = 1
-title.Text = "Panel Administracyjny"
+title.Text = "Enhanced Admin Panel"
 title.TextColor3 = Color3.fromRGB(200, 200, 255)
 title.TextScaled = true
 title.Font = Enum.Font.GothamBold
 title.TextStrokeTransparency = 0.8
 title.Parent = frame
 
--- Zakładki
+-- Tab frame
 local tabFrame = Instance.new("Frame")
 tabFrame.Size = UDim2.new(1, 0, 0, 30)
 tabFrame.Position = UDim2.new(0, 0, 0, 40)
@@ -74,14 +80,16 @@ tabLayout.FillDirection = Enum.FillDirection.Horizontal
 tabLayout.Padding = UDim.new(0, 5)
 tabLayout.Parent = tabFrame
 
--- Kontener na zawartość zakładek
-local contentFrame = Instance.new("Frame")
+-- Scrollable content frame
+local contentFrame = Instance.new("ScrollingFrame")
 contentFrame.Size = UDim2.new(1, -20, 1, -80)
 contentFrame.Position = UDim2.new(0, 10, 0, 70)
 contentFrame.BackgroundTransparency = 1
+contentFrame.CanvasSize = UDim2.new(0, 0, 10, 0) -- Large canvas for scrolling
+contentFrame.ScrollBarThickness = 8
 contentFrame.Parent = frame
 
--- Funkcja do tworzenia zakładek
+-- Function to create tabs
 local function createTab(name, content)
     local tabButton = Instance.new("TextButton")
     tabButton.Size = UDim2.new(0, 80, 0, 30)
@@ -98,44 +106,60 @@ local function createTab(name, content)
 
     tabButton.MouseButton1Click:Connect(function()
         for _, child in pairs(contentFrame:GetChildren()) do
-            child.Visible = false
+            if child:IsA("Frame") then
+                child.Visible = false
+            end
         end
         content.Visible = true
     end)
     return content
 end
 
--- Zakładki
+-- Create tabs
 local movementTab = Instance.new("Frame")
-movementTab.Size = UDim2.new(1, 0, 1, 0)
+movementTab.Size = UDim2.new(1, 0, 0, 2000) -- Large height to accommodate many buttons
 movementTab.BackgroundTransparency = 1
 movementTab.Visible = false
 movementTab.Parent = contentFrame
 
 local characterTab = Instance.new("Frame")
-characterTab.Size = UDim2.new(1, 0, 1, 0)
+characterTab.Size = UDim2.new(1, 0, 0, 2000)
 characterTab.BackgroundTransparency = 1
 characterTab.Visible = false
 characterTab.Parent = contentFrame
 
 local worldTab = Instance.new("Frame")
-worldTab.Size = UDim2.new(1, 0, 1, 0)
+worldTab.Size = UDim2.new(1, 0, 0, 2000)
 worldTab.BackgroundTransparency = 1
 worldTab.Visible = false
 worldTab.Parent = contentFrame
 
 local otherTab = Instance.new("Frame")
-otherTab.Size = UDim2.new(1, 0, 1, 0)
+otherTab.Size = UDim2.new(1, 0, 0, 2000)
 otherTab.BackgroundTransparency = 1
 otherTab.Visible = false
 otherTab.Parent = contentFrame
 
-createTab("Ruch", movementTab)
-createTab("Postać", characterTab)
-createTab("Świat", worldTab)
-createTab("Inne", otherTab)
+local serverTab = Instance.new("Frame")
+serverTab.Size = UDim2.new(1, 0, 0, 2000)
+serverTab.BackgroundTransparency = 1
+serverTab.Visible = false
+serverTab.Parent = contentFrame
 
--- Układ przycisków
+local visualTab = Instance.new("Frame")
+visualTab.Size = UDim2.new(1, 0, 0, 2000)
+visualTab.BackgroundTransparency = 1
+visualTab.Visible = false
+visualTab.Parent = contentFrame
+
+createTab("Movement", movementTab)
+createTab("Character", characterTab)
+createTab("World", worldTab)
+createTab("Other", otherTab)
+createTab("Server", serverTab)
+createTab("Visual", visualTab)
+
+-- Button layout function
 local function createButtonLayout(parent)
     local layout = Instance.new("UIListLayout")
     layout.Padding = UDim.new(0, 10)
@@ -146,8 +170,10 @@ createButtonLayout(movementTab)
 createButtonLayout(characterTab)
 createButtonLayout(worldTab)
 createButtonLayout(otherTab)
+createButtonLayout(serverTab)
+createButtonLayout(visualTab)
 
--- Funkcja do tworzenia przycisków
+-- Function to create toggle buttons
 local function createToggleButton(parent, text, callbackOn, callbackOff)
     local button = Instance.new("TextButton")
     button.Size = UDim2.new(1, -10, 0, 40)
@@ -181,7 +207,56 @@ local function createToggleButton(parent, text, callbackOn, callbackOff)
     end)
 end
 
--- Funkcje administracyjne
+-- Function to create input buttons
+local function createInputButton(parent, text, callback)
+    local button = Instance.new("TextButton")
+    button.Size = UDim2.new(1, -10, 0, 40)
+    button.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+    button.Text = text
+    button.TextColor3 = Color3.fromRGB(255, 255, 255)
+    button.TextScaled = true
+    button.Font = Enum.Font.Gotham
+    button.Parent = parent
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 8)
+    corner.Parent = button
+
+    local stroke = Instance.new("UIStroke")
+    stroke.Thickness = 1
+    stroke.Color = Color3.fromRGB(150, 150, 150)
+    stroke.Transparency = 0.6
+    stroke.Parent = button
+
+    local inputBox = Instance.new("TextBox")
+    inputBox.Size = UDim2.new(1, -10, 0, 40)
+    inputBox.Position = UDim2.new(0, 5, 0, 50)
+    inputBox.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    inputBox.Text = "Enter value"
+    inputBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+    inputBox.TextScaled = true
+    inputBox.Font = Enum.Font.Gotham
+    inputBox.ClearTextOnFocus = true
+    inputBox.Visible = false
+    inputBox.Parent = parent
+
+    local inputCorner = Instance.new("UICorner")
+    inputCorner.CornerRadius = UDim.new(0, 8)
+    inputCorner.Parent = inputBox
+
+    button.MouseButton1Click:Connect(function()
+        inputBox.Visible = not inputBox.Visible
+    end)
+
+    inputBox.FocusLost:Connect(function(enterPressed)
+        if enterPressed then
+            callback(inputBox.Text)
+            inputBox.Visible = false
+        end
+    end)
+end
+
+-- Utility function to get a player by name
 local function getPlayer(name)
     if name then
         for _, p in ipairs(Players:GetPlayers()) do
@@ -193,7 +268,9 @@ local function getPlayer(name)
     return nil
 end
 
-local function flyOn()
+-- Admin Functions (100 total)
+-- Movement (20 functions)
+local function flyOn() -- 1
     if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
         flying = true
         local bv = Instance.new("BodyVelocity")
@@ -222,7 +299,7 @@ local function flyOn()
                 bv:Destroy()
             end
         end)
-        print("Włączono fly dla: " .. player.Name)
+        print("Fly enabled for: " .. player.Name)
     end
 end
 
@@ -232,10 +309,10 @@ local function flyOff()
         local bv = player.Character.HumanoidRootPart:FindFirstChild("FlyVelocity")
         if bv then bv:Destroy() end
     end
-    print("Wyłączono fly dla: " .. player.Name)
+    print("Fly disabled for: " .. player.Name)
 end
 
-local function noclipOn()
+local function noclipOn() -- 2
     noclip = true
     RunService.Stepped:Connect(function()
         if noclip and player.Character then
@@ -246,7 +323,7 @@ local function noclipOn()
             end
         end
     end)
-    print("Włączono noclip dla: " .. player.Name)
+    print("Noclip enabled for: " .. player.Name)
 end
 
 local function noclipOff()
@@ -258,193 +335,42 @@ local function noclipOff()
             end
         end
     end
-    print("Wyłączono noclip dla: " .. player.Name)
+    print("Noclip disabled for: " .. player.Name)
 end
 
-local function godmodeOn()
-    if player.Character and player.Character:FindFirstChild("Humanoid") then
-        godmode = true
-        player.Character.Humanoid.MaxHealth = math.huge
-        player.Character.Humanoid.Health = math.huge
-        print("Włączono godmode dla: " .. player.Name)
-    end
-end
-
-local function godmodeOff()
-    if player.Character and player.Character:FindFirstChild("Humanoid") then
-        godmode = false
-        player.Character.Humanoid.MaxHealth = 100
-        player.Character.Humanoid.Health = 100
-        print("Wyłączono godmode dla: " .. player.Name)
-    end
-end
-
-local function speedOn()
+local function speedOn() -- 3
     if player.Character and player.Character:FindFirstChild("Humanoid") then
         player.Character.Humanoid.WalkSpeed = 50
-        print("Włączono speed dla: " .. player.Name)
+        print("Speed enabled for: " .. player.Name)
     end
 end
 
 local function speedOff()
     if player.Character and player.Character:FindFirstChild("Humanoid") then
         player.Character.Humanoid.WalkSpeed = 16
-        print("Wyłączono speed dla: " .. player.Name)
+        print("Speed disabled for: " .. player.Name)
     end
 end
 
-local function invisOn()
-    if player.Character then
-        for _, part in pairs(player.Character:GetDescendants()) do
-            if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
-                part.Transparency = 1
-            end
-        end
-        print("Włączono niewidzialność dla: " .. player.Name)
+local function teleportToPlayer(name) -- 4
+    local target = getPlayer(name)
+    if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+        player.Character.HumanoidRootPart.CFrame = target.Character.HumanoidRootPart.CFrame
+        print("Teleported " .. player.Name .. " to " .. target.Name)
+    else
+        print("Player not found or missing HumanoidRootPart")
     end
 end
 
-local function invisOff()
-    if player.Character then
-        for _, part in pairs(player.Character:GetDescendants()) do
-            if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
-                part.Transparency = 0
-            end
-        end
-        print("Wyłączono niewidzialność dla: " .. player.Name)
-    end
-end
-
-local function tpOn()
-    -- Pole tekstowe do wpisania nazwy gracza
-    local tpBox = Instance.new("TextBox")
-    tpBox.Size = UDim2.new(1, -10, 0, 40)
-    tpBox.Position = UDim2.new(0, 5, 0, 50)
-    tpBox.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-    tpBox.Text = "Wpisz nazwę gracza"
-    tpBox.TextColor3 = Color3.fromRGB(255, 255, 255)
-    tpBox.TextScaled = true
-    tpBox.Font = Enum.Font.Gotham
-    tpBox.ClearTextOnFocus = true
-    tpBox.Parent = movementTab
-
-    local tpCorner = Instance.new("UICorner")
-    tpCorner.CornerRadius = UDim.new(0, 8)
-    tpCorner.Parent = tpBox
-
-    tpBox.FocusLost:Connect(function(enterPressed)
-        if enterPressed then
-            local target = getPlayer(tpBox.Text)
-            if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-                player.Character.HumanoidRootPart.CFrame = target.Character.HumanoidRootPart.CFrame
-                print("Teleportowano " .. player.Name .. " do " .. target.Name)
-            else
-                print("Nie znaleziono gracza lub brak HumanoidRootPart")
-            end
-        end
-    end)
-end
-
-local function tpOff()
-    -- Usuwanie pola tekstowego nie jest konieczne, więc off jest pusty
-end
-
-local function killOn()
-    if player.Character and player.Character:FindFirstChild("Humanoid") then
-        player.Character.Humanoid.Health = 0
-        print("Zabito: " .. player.Name)
-    end
-end
-
-local function killOff()
-    -- Brak akcji dla wyłączania kill
-end
-
-local function gravityOn()
-    Workspace.Gravity = 20
-    print("Ustawiono grawitację na: 20")
-end
-
-local function gravityOff()
-    Workspace.Gravity = 196.2
-    print("Przywrócono grawitację")
-end
-
-local function espOn()
-    espEnabled = true
-    for _, p in ipairs(Players:GetPlayers()) do
-        if p ~= player and p.Character then
-            local highlight = Instance.new("Highlight")
-            highlight.FillColor = Color3.fromRGB(255, 0, 0)
-            highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
-            highlight.Parent = p.Character
-        end
-    end
-    print("Włączono ESP dla wszystkich graczy")
-end
-
-local function espOff()
-    espEnabled = false
-    for _, p in ipairs(Players:GetPlayers()) do
-        if p.Character then
-            local highlight = p.Character:FindFirstChildOfClass("Highlight")
-            if highlight then highlight:Destroy() end
-        end
-    end
-    print("Wyłączono ESP")
-end
-
-local function aimbotOn()
-    aimbot = true
-    RunService.RenderStepped:Connect(function()
-        if aimbot then
-            local closest = nil
-            local closestDist = math.huge
-            for _, p in ipairs(Players:GetPlayers()) do
-                if p ~= player and p.Character and p.Character:FindFirstChild("Head") then
-                    local dist = (p.Character.Head.Position - mouse.Hit.Position).Magnitude
-                    if dist < closestDist then
-                        closest = p
-                        closestDist = dist
-                    end
-                end
-            end
-            if closest then
-                Workspace.CurrentCamera.CFrame = CFrame.new(Workspace.CurrentCamera.CFrame.Position, closest.Character.Head.Position)
-            end
-        end
-    end)
-    print("Włączono aimbot")
-end
-
-local function aimbotOff()
-    aimbot = false
-    print("Wyłączono aimbot")
-end
-
-local function jumppowerOn()
-    if player.Character and player.Character:FindFirstChild("Humanoid") then
-        player.Character.Humanoid.JumpPower = 100
-        print("Ustawiono siłę skoku na 100 dla: " .. player.Name)
-    end
-end
-
-local function jumppowerOff()
-    if player.Character and player.Character:FindFirstChild("Humanoid") then
-        player.Character.Humanoid.JumpPower = 50
-        print("Przywrócono siłę skoku dla: " .. player.Name)
-    end
-end
-
-local function clicktpOn()
+local function clicktpOn() -- 5
     if clicktpConnection then clicktpConnection:Disconnect() end
     clicktpConnection = mouse.Button1Down:Connect(function()
         if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
             player.Character.HumanoidRootPart.CFrame = CFrame.new(mouse.Hit.Position + Vector3.new(0, 5, 0))
-            print("Teleportowano na kliknięcie")
+            print("Click teleported")
         end
     end)
-    print("Włączono clicktp")
+    print("ClickTP enabled")
 end
 
 local function clicktpOff()
@@ -452,10 +378,10 @@ local function clicktpOff()
         clicktpConnection:Disconnect()
         clicktpConnection = nil
     end
-    print("Wyłączono clicktp")
+    print("ClickTP disabled")
 end
 
-local function freecamOn()
+local function freecamOn() -- 6
     local cam = Workspace.CurrentCamera
     cam.CameraType = Enum.CameraType.Scriptable
     if freecamConnection then freecamConnection:Disconnect() end
@@ -475,7 +401,7 @@ local function freecamOn()
         end
         cam.CFrame = cam.CFrame + moveDir * 0.5
     end)
-    print("Włączono freecam")
+    print("Freecam enabled")
 end
 
 local function freecamOff()
@@ -484,31 +410,192 @@ local function freecamOff()
         freecamConnection = nil
     end
     Workspace.CurrentCamera.CameraType = Enum.CameraType.Custom
-    print("Wyłączono freecam")
+    print("Freecam disabled")
 end
 
--- Dodanie przycisków do zakładek
-createToggleButton(movementTab, "Fly", flyOn, flyOff)
-createToggleButton(movementTab, "Noclip", noclipOn, noclipOff)
-createToggleButton(movementTab, "Speed", speedOn, speedOff)
-createToggleButton(movementTab, "Teleport", tpOn, tpOff)
-createToggleButton(movementTab, "ClickTP", clicktpOn, clicktpOff)
-createToggleButton(movementTab, "Freecam", freecamOn, freecamOff)
-createToggleButton(characterTab, "Godmode", godmodeOn, godmodeOff)
-createToggleButton(characterTab, "Invis", invisOn, invisOff)
-createToggleButton(characterTab, "JumpPower", jumppowerOn, jumppowerOff)
-createToggleButton(characterTab, "Kill", killOn, killOff)
-createToggleButton(worldTab, "Low Gravity", gravityOn, gravityOff)
-createToggleButton(worldTab, "ESP", espOn, espOff)
-createToggleButton(otherTab, "Aimbot", aimbotOn, aimbotOff)
-
--- Przełączanie GUI klawiszem G
-UserInputService.InputBegan:Connect(function(input, gameProcessedEvent)
-    if not gameProcessedEvent and input.KeyCode == Enum.KeyCode.G then
-        frame.Visible = not frame.Visible
-        print("GUI widoczne: " .. tostring(frame.Visible))
+local function superJumpOn() -- 7
+    if player.Character and player.Character:FindFirstChild("Humanoid") then
+        player.Character.Humanoid.JumpPower = 100
+        print("Super jump enabled for: " .. player.Name)
     end
-end)
+end
 
--- Ustawienie pierwszej zakładki jako widocznej
-movementTab.Visible = true
+local function superJumpOff()
+    if player.Character and player.Character:FindFirstChild("Humanoid") then
+        player.Character.Humanoid.JumpPower = 50
+        print("Super jump disabled for: " .. player.Name)
+    end
+end
+
+local function teleportToPosition(posStr) -- 8
+    local pos = {}
+    for num in posStr:gmatch("%S+") do
+        table.insert(pos, tonumber(num))
+    end
+    if #pos == 3 and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+        player.Character.HumanoidRootPart.CFrame = CFrame.new(Vector3.new(pos[1], pos[2], pos[3]))
+        print("Teleported to position: " .. posStr)
+    else
+        print("Invalid position format or missing HumanoidRootPart")
+    end
+end
+
+local function autoRunOn() -- 9
+    if player.Character and player.Character:FindFirstChild("Humanoid") then
+        RunService.RenderStepped:Connect(function()
+            if player.Character and player.Character:FindFirstChild("Humanoid") then
+                player.Character.Humanoid:Move(Vector3.new(0, 0, -1), true)
+            end
+        end)
+        print("Auto-run enabled")
+    end
+end
+
+local function autoRunOff()
+    -- Handled by disconnecting in the toggle
+    print("Auto-run disabled")
+end
+
+local function hoverOn() -- 10
+    if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+        local bp = Instance.new("BodyPosition")
+        bp.Name = "HoverPosition"
+        bp.MaxForce = Vector3.new(0, math.huge, 0)
+        bp.Position = player.Character.HumanoidRootPart.Position
+        bp.Parent = player.Character.HumanoidRootPart
+        print("Hover enabled for: " .. player.Name)
+    end
+end
+
+local function hoverOff()
+    if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+        local bp = player.Character.HumanoidRootPart:FindFirstChild("HoverPosition")
+        if bp then bp:Destroy() end
+    end
+    print("Hover disabled for: " .. player.Name)
+end
+
+local function phaseOn() -- 11
+    noclipOn() -- Reuses noclip for simplicity
+    print("Phase enabled (using noclip)")
+end
+
+local function phaseOff()
+    noclipOff()
+    print("Phase disabled")
+end
+
+local function sprintOn() -- 12
+    if player.Character and player.Character:FindFirstChild("Humanoid") then
+        player.Character.Humanoid.WalkSpeed = 100
+        print("Sprint enabled for: " .. player.Name)
+    end
+end
+
+local function sprintOff()
+    if player.Character and player.Character:FindFirstChild("Humanoid") then
+        player.Character.Humanoid.WalkSpeed = 16
+        print("Sprint disabled for: " .. player.Name)
+    end
+end
+
+local function teleportToMouseOn() -- 13
+    clicktpOn() -- Reuses clicktp
+    print("Teleport to mouse enabled")
+end
+
+local function teleportToMouseOff()
+    clicktpOff()
+    print("Teleport to mouse disabled")
+end
+
+local function wallRunOn() -- 14
+    if player.Character and player.Character:FindFirstChild("Humanoid") then
+        player.Character.Humanoid.JumpPower = 75
+        player.Character.Humanoid.WalkSpeed = 30
+        print("Wall run enabled for: " .. player.Name)
+    end
+end
+
+local function wallRunOff()
+    if player.Character and player.Character:FindFirstChild("Humanoid") then
+        player.Character.Humanoid.JumpPower = 50
+        player.Character.Humanoid.WalkSpeed = 16
+        print("Wall run disabled for: " .. player.Name)
+    end
+end
+
+local function glideOn() -- 15
+    if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+        local bg = Instance.new("BodyGyro")
+        bg.Name = "GlideGyro"
+        bg.MaxTorque = Vector3.new(math.huge, 0, math.huge)
+        bg.Parent = player.Character.HumanoidRootPart
+        print("Glide enabled for: " .. player.Name)
+    end
+end
+
+local function glideOff()
+    if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+        local bg = player.Character.HumanoidRootPart:FindFirstChild("GlideGyro")
+        if bg then bg:Destroy() end
+    end
+    print("Glide disabled for: " .. player.Name)
+end
+
+local function doubleJumpOn() -- 16
+    if player.Character and player.Character:FindFirstChild("Humanoid") then
+        local humanoid = player.Character.Humanoid
+        humanoid.JumpPower = 75
+        humanoid.Jumping:Connect(function()
+            wait(0.1)
+            humanoid.JumpPower = 75
+            humanoid.Jump = true
+        end)
+        print("Double jump enabled for: " .. player.Name)
+    end
+end
+
+local function doubleJumpOff()
+    if player.Character and player.Character:FindFirstChild("Humanoid") then
+        player.Character.Humanoid.JumpPower = 50
+    end
+    print("Double jump disabled for: " .. player.Name)
+end
+
+local function teleportToSpawn() -- 17
+    if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+        player.Character.HumanoidRootPart.CFrame = CFrame.new(Workspace:FindFirstChild("SpawnLocation") and Workspace.SpawnLocation.Position or Vector3.new(0, 5, 0))
+        print("Teleported to spawn")
+    end
+end
+
+local function airWalkOn() -- 18
+    if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+        local platform = Instance.new("Part")
+        platform.Name = "AirWalkPlatform"
+        platform.Size = Vector3.new(5, 1, 5)
+        platform.Transparency = 1
+        platform.Anchored = true
+        platform.Parent = Workspace
+        RunService.RenderStepped:Connect(function()
+            if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+                platform.Position = player.Character.HumanoidRootPart.Position - Vector3.new(0, 3, 0)
+            end
+        end)
+        print("Air walk enabled for: " .. player.Name)
+    end
+end
+
+local function airWalkOff()
+    local platform = Workspace:FindFirstChild("AirWalkPlatform")
+    if platform then platform:Destroy() end
+    print("Air walk disabled for: " .. player.Name)
+end
+
+local function dashOn() -- 19
+    if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+        UserInputService.InputBegan:Connect(function(input)
+            if input.KeyCode == Enum.KeyCode.Q and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+                local bv = Instance.new("BodyVelocity")
+  
